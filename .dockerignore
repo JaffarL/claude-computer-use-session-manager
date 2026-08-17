@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+.env
+.env.*
+!.env.example
+__pycache__
+.pytest_cache
+.ruff_cache
+*.pyc
+*.log
+data
+htmlcov
+笔试题.md
+笔试题完整完成方案.md

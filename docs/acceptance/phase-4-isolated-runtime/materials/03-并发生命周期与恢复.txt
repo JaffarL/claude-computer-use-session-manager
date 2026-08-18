@@ -1,0 +1,41 @@
+一、跨会话并行
+
+SUBMIT_STATUS=202,202
+A=COMPLETED 2026-08-18T02:32:59.379824Z -> 2026-08-18T02:32:59.665104Z
+B=COMPLETED 2026-08-18T02:32:59.385505Z -> 2026-08-18T02:32:59.669177Z
+OVERLAP_MS=279.599
+
+二、同会话竞态
+
+同时向同一个 READY session 发出两个 run：
+REQUEST_1=409 state_conflict
+REQUEST_2=202 PENDING
+
+三、stop/delete
+
+STOP_A_1=200 status=STOPPED
+STOP_A_2=200 status=STOPPED
+DELETE_ae84d6d1=204
+DELETE_051c0f10=204
+删除后 managed sandbox 数量：0
+
+停止隔离复核：
+A session=STOPPED，runtime=0ee99af516c4，container=Exited (143)
+B session=READY，runtime=0bd0b7956bb8，container=healthy
+
+四、API 重启恢复
+
+重启前：
+session_id=5032b453-0efd-4407-bd27-cfa91cf1a6c7
+runtime_id=0ee99af516c49eb955682253118706d5f894be44b7600b97bb416df14fad745d
+status=READY
+
+执行：docker compose restart api
+
+重启后：
+GET_AFTER_RESTART=200
+status=READY
+runtime_id=0ee99af516c49eb955682253118706d5f894be44b7600b97bb416df14fad745d
+RUNTIME_AFTER_RESTART=0ee99af516c4 STATUS=healthy
+
+结论：重启前后 runtime ID 完全相同，没有重复创建或错误绑定。

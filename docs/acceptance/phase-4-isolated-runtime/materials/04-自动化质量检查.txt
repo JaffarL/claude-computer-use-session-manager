@@ -1,0 +1,27 @@
+执行命令：
+.\.venv\Scripts\ruff.exe format --check backend
+.\.venv\Scripts\ruff.exe check backend
+.\.venv\Scripts\pytest.exe backend\tests -q
+git diff --check
+
+结果：
+56 files already formatted
+All checks passed!
+.................... [100%]
+20 passed in 2.29s
+git diff --check：通过
+
+Runtime 专项覆盖：
+- 同一 session 20 个并发 create 仅创建一次
+- Docker 端口、CPU、内存、PID、shm、capabilities、安全选项
+- VNC JWT 有效期和容器级密钥绑定
+- A token 无法用 B 密钥验证
+- 重启恢复 runtime 绑定
+- 过期 runtime 清理
+- 孤儿 runtime 清理
+- STOPPING + 已退出容器恢复为 STOPPED
+
+功能提交：
+9dff315 build(sandbox): add isolated noVNC desktop image
+0b7796a feat(runtime): manage per-session Docker desktops
+6547cef test(runtime): cover concurrency recovery and VNC isolation

@@ -2,7 +2,7 @@
 
 ## 目标
 
-本项目把 Anthropic 官方单会话 Computer Use 演示改造成一个可以管理多个隔离会话的后端。当前已经具备会话 API、持久化历史、实时事件流，以及每会话独立的 Docker 桌面运行时和短期 noVNC 访问令牌。
+本项目把 Anthropic 官方单会话 Computer Use 演示改造成一个可以管理多个隔离会话的系统。当前已经具备会话 API、持久化历史、实时事件流、每会话独立的 Docker 桌面运行时、短期 noVNC 访问令牌，以及与 API 同源的演示控制台。
 
 ## 控制面边界
 
@@ -40,6 +40,7 @@ backend/
 │  ├─ repositories/ # 持久化查询
 │  ├─ runtime/      # Fake/Docker 运行时提供者
 │  ├─ schemas/      # API 数据模型
+│  ├─ static/       # 原生 HTML/CSS/JS 会话控制台
 │  └─ services/     # 业务服务
 ├─ migrations/      # Alembic 迁移
 └─ tests/           # 后端测试
@@ -109,3 +110,9 @@ sequenceDiagram
 - `GET /api/v1/sessions/{session_id}/events/history` 提供等价的非流式历史查询。
 
 当前确定性 fake agent 会生成 `run.started`、文本增量、工具开始、工具结果、截图、最终消息和 `run.completed`。上游 Anthropic 的同步 callback 由有界适配队列转换为同一套 UI 无关事件，避免 Agent 代码依赖 Streamlit。
+
+## 同源演示前端
+
+FastAPI 在 `/` 提供零构建的原生 HTML/CSS/JS 控制台，静态资源位于 `/static`。控制台只消费公开 REST、SSE 和 noVNC 接口，不读取数据库或 Docker socket，因此前端不会绕过控制面状态机。
+
+页面切换会话时先关闭旧 EventSource，再并行读取 session、messages 和持久化 event history，随后以最后事件 ID 建立实时 SSE。事件按数据库 ID 去重；浏览器刷新后可完全从后端恢复。noVNC URL 由控制面按需签发，JWT 位于 noVNC 的 WebSocket `path` 参数中，不写入应用日志或持久化模型。

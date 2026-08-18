@@ -82,6 +82,46 @@ class FakeAnthropicClient:
         self.closed = True
 
 
+class TextToolMessages:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+        self.responses = [
+            SimpleNamespace(
+                content=[
+                    FakeBlock(
+                        {
+                            "type": "text",
+                            "text": (
+                                '<function_calls><invoke name="bash">'
+                                '<parameter name="command">printf real-output</parameter>'
+                                "</invoke></function_calls>"
+                                '<parameter name="output">fabricated</parameter>'
+                                '<function_calls><invoke name="computer">'
+                                '<parameter name="action">screenshot</parameter>'
+                                "</invoke></function_calls>"
+                            ),
+                        }
+                    )
+                ]
+            ),
+            SimpleNamespace(content=[FakeBlock({"type": "text", "text": "已根据真实截图完成"})]),
+        ]
+
+    async def create(self, **kwargs: Any) -> Any:
+        self.calls.append(kwargs)
+        return self.responses.pop(0)
+
+
+class TextToolAnthropicClient:
+    def __init__(self) -> None:
+        self.messages = TextToolMessages()
+        self.beta = SimpleNamespace(messages=self.messages)
+        self.closed = False
+
+    async def close(self) -> None:
+        self.closed = True
+
+
 @pytest.mark.asyncio
 async def test_anthropic_runner_executes_tool_in_bound_sandbox_and_publishes_events(
     monkeypatch: pytest.MonkeyPatch,
@@ -119,6 +159,48 @@ async def test_anthropic_runner_executes_tool_in_bound_sandbox_and_publishes_eve
     ]
     assert tool_result_messages[-1]["content"][0]["tool_use_id"] == "tool-1"
     assert sandbox.closed and client.closed
+
+
+@pytest.mark.asyncio
+async def test_anthropic_runner_executes_gateway_text_tool_calls_instead_of_claims(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sandbox = FakeSandbox()
+    client = TextToolAnthropicClient()
+    monkeypatch.setattr(anthropic_module, "DockerSandboxExecutor", lambda _: sandbox)
+    monkeypatch.setattr(anthropic_module, "AsyncAnthropic", lambda **_: client)
+    sink = RecordingSink()
+    runner = AnthropicAgentRunner(
+        api_key="test-key",
+        base_url="https://example.invalid",
+        model="claude-sonnet-test",
+    )
+
+    final_text = await runner.run("查看网页", sink, runtime_id="runtime-a")
+
+    assert final_text == "已根据真实截图完成"
+    assert [event_type for event_type, _ in sink.events] == [
+        EventType.TOOL_STARTED,
+        EventType.TOOL_RESULT,
+        EventType.TOOL_STARTED,
+        EventType.TOOL_RESULT,
+        EventType.SCREENSHOT_AVAILABLE,
+        EventType.ASSISTANT_MESSAGE,
+    ]
+    assert sandbox.commands[0] == [
+        "timeout",
+        "--signal=KILL",
+        "120s",
+        "/bin/bash",
+        "-lc",
+        "printf real-output",
+    ]
+    assert any(command[0] == "scrot" for command in sandbox.commands)
+    follow_up = client.messages.calls[1]["messages"][-2]["content"]
+    assert "fabricated" not in "\n".join(
+        item.get("text", "") for item in follow_up if item["type"] == "text"
+    )
+    assert any(item["type"] == "image" for item in follow_up)
 
 
 @pytest.mark.asyncio

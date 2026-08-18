@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.db.base import Base
@@ -16,6 +17,13 @@ async def api_client(tmp_path: Path) -> AsyncIterator[AsyncClient]:
     """使用真实 SQLAlchemy 仓储和临时 SQLite 文件验证 API。"""
     database_path = tmp_path / "session-api.sqlite3"
     engine = create_async_engine(f"sqlite+aiosqlite:///{database_path}")
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def enable_sqlite_foreign_keys(dbapi_connection: object, _: object) -> None:
+        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
     async with engine.begin() as connection:

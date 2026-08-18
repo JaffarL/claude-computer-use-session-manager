@@ -106,6 +106,9 @@ class SessionService:
                 input=user_input,
                 idempotency_key=idempotency_key,
             )
+            self._database_session.add(run)
+            # run_id 是消息外键；显式 flush 保证所有数据库都先插入父记录。
+            await self._database_session.flush()
             message = ChatMessage(
                 id=uuid.uuid4(),
                 session_id=session_id,
@@ -114,7 +117,7 @@ class SessionService:
                 content={"text": user_input},
                 sequence=await self._repository.next_message_sequence(session_id),
             )
-            self._database_session.add_all([run, message])
+            self._database_session.add(message)
             session.status = SessionStatus.RUNNING.value
             session.version += 1
 

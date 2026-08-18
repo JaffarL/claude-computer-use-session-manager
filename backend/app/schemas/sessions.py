@@ -88,6 +88,11 @@ class MessageListResponse(BaseModel):
     items: list[MessageResponse]
 
 
+class VncAccessResponse(BaseModel):
+    url: str
+    expires_at: datetime
+
+
 class ErrorDetail(BaseModel):
     code: str
     message: str

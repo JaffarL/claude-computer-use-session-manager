@@ -1,186 +1,210 @@
-# Anthropic Computer Use Demo
+# Claude Computer Use Session Manager
 
-> [!NOTE]
-> The demo now defaults to Claude Opus 4.8 (claude-opus-4-8), the latest model, with adaptive thinking — the model decides how much to reason, steered by a selectable effort level. Claude Opus 4.7, Opus 4.6, and Sonnet 4.6 are also supported with adaptive thinking, while older models (Claude Opus 4.5, Sonnet 4.5, Sonnet 4, Opus 4, and Haiku 4.5) continue to work with extended thinking and the str_replace_based_edit_tool.
+一个面向 Computer Use Agent 的多会话控制面：FastAPI 管理会话和任务，PostgreSQL 保存历史，Redis 推送实时事件，每个会话使用独立 Docker 桌面，并通过短期 JWT 访问 noVNC。
 
-> [!CAUTION]
-> Computer use is a beta feature. Please be aware that computer use poses unique risks that are distinct from standard API features or chat interfaces. These risks are heightened when using computer use to interact with the internet. To minimize risks, consider taking precautions such as:
->
-> 1. Use a dedicated virtual machine or container with minimal privileges to prevent direct system attacks or accidents.
-> 2. Avoid giving the model access to sensitive data, such as account login information, to prevent information theft.
-> 3. Limit internet access to an allowlist of domains to reduce exposure to malicious content.
-> 4. Ask a human to confirm decisions that may result in meaningful real-world consequences as well as any tasks requiring affirmative consent, such as accepting cookies, executing financial transactions, or agreeing to terms of service.
->
-> In some circumstances, Claude will follow commands found in content even if it conflicts with the user's instructions. For example, instructions on webpages or contained in images may override user instructions or cause Claude to make mistakes. We suggest taking precautions to isolate Claude from sensitive data and actions to avoid risks related to prompt injection.
->
-> Finally, please inform end users of relevant risks and obtain their consent prior to enabling computer use in your own products.
+当前发布候选版本提供原生 HTML/CSS/JS 控制台，可在一个页面内完成“创建会话 → 提交任务 → 查看 SSE 进度 → 查看隔离桌面 → 刷新恢复历史 → 停止会话”。
 
-This repository helps you get started with computer use on Claude, with reference implementations of:
+![前端主流程](docs/acceptance/phase-5-demo-frontend/materials/screenshots/01-live-task-sse-vnc.png)
 
-- Build files to create a Docker container with all necessary dependencies
-- A computer use agent loop using the Claude API, Bedrock, or Vertex to access Claude Opus 4.5, Claude Sonnet 4.5, Claude Sonnet 4, Claude Opus 4, Claude Haiku 4.5, Claude 3.7 Sonnet, and Claude 3.5 Sonnet models
-- Anthropic-defined computer use tools
-- A streamlit app for interacting with the agent loop
+## 核心能力
 
-> [!TIP]
-> **Looking for production-readiness patterns?** This demo is a deliberately minimal, containerized reference: it shows the essential agent loop running against a Linux desktop in Docker with X11 + VNC. If you want to see common patterns for making computer-use agents more reliable and cost-effective — explicit tool definitions, image sizing and pruning, prompt caching, server-side compaction, batched tool calls, a sandboxed shell, and trajectory recording — see the [Computer Use Best Practices](../computer-use-best-practices) quickstart, which runs natively on macOS (no container) and pairs with Anthropic's [computer-use best-practices guide](https://claude.com/blog/best-practices-for-computer-and-browser-use-with-claude).
+- 会话、任务、消息和事件的 REST API；
+- PostgreSQL 持久化和 Alembic 迁移；
+- Redis 实时发布、标准 SSE、心跳和 `Last-Event-ID` 断线补发；
+- 同会话并发保护、幂等键和跨会话并行执行；
+- 一会话一 Docker sandbox：Xvfb、Openbox、Firefox、x11vnc、websockify/noVNC；
+- 每容器独立短期 VNC JWT，CPU、内存、PID、共享内存和权限限制；
+- API 重启后的 runtime 恢复，以及过期、孤儿和重复容器回收；
+- 与 API 同源的零构建响应式前端；
+- Windows 11 + PowerShell 开发、测试、冒烟和清理脚本。
 
-Please use [this form](https://forms.gle/BT1hpBrqDPDUrCqo7) to provide feedback on the quality of the model responses, the API itself, or the quality of the documentation - we cannot wait to hear from you!
+## 架构
 
-> [!IMPORTANT]
-> The Beta API used in this reference implementation is subject to change. Please refer to the [API release notes](https://docs.claude.com/en/release-notes/api) for the most up-to-date information.
-
-> [!IMPORTANT]
-> The components are weakly separated: the agent loop runs in the container being controlled by Claude, can only be used by one session at a time, and must be restarted or reset between sessions if necessary.
-
-## Quickstart: running the Docker container
-
-### Claude API
-
-> [!TIP]
-> You can find your API key in the [Claude Console](https://console.anthropic.com/).
-
-```bash
-export ANTHROPIC_API_KEY=%your_api_key%
-docker run \
-    -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-    -v $HOME/.anthropic:/home/computeruse/.anthropic \
-    -p 5900:5900 \
-    -p 8501:8501 \
-    -p 6080:6080 \
-    -p 8080:8080 \
-    -it ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+```mermaid
+flowchart LR
+    B["浏览器控制台"] -->|"REST + SSE"| A["FastAPI 控制面"]
+    A --> P[("PostgreSQL")]
+    A --> R[("Redis")]
+    A --> D["Docker RuntimeProvider"]
+    D --> S1["Session A sandbox"]
+    D --> S2["Session B sandbox"]
+    B -->|"短期 JWT + noVNC WebSocket"| S1
+    B -->|"短期 JWT + noVNC WebSocket"| S2
 ```
 
-Once the container is running, see the [Accessing the demo app](#accessing-the-demo-app) section below for instructions on how to connect to the interface.
+详细设计见 [架构说明](docs/architecture.md)，并发实测见 [并发证据](docs/concurrency-evidence.md)。
 
-### Bedrock
+## 快速启动（Windows 11 + PowerShell）
 
-> [!TIP]
-> To use the new Claude 3.7 Sonnet on Bedrock, you first need to [request model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access-modify.html).
+### 前置条件
 
-You'll need to pass in AWS credentials with appropriate permissions to use Claude on Bedrock.
-You have a few options for authenticating with Bedrock. See the [boto3 documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#environment-variables) for more details and options.
+- Windows 11；
+- Docker Desktop，使用 WSL2 后端且显示 `Engine running`；
+- Git；
+- Python 3.11（仅本地测试脚本需要；Docker 启动不需要主机 Python）；
+- 建议至少 4 CPU、8 GB 内存和 5 GB 可用磁盘。
 
-#### Option 1: (suggested) Use the host's AWS credentials file and AWS profile
+### 1. 获取代码
 
-```bash
-export AWS_PROFILE=<your_aws_profile>
-docker run \
-    -e API_PROVIDER=bedrock \
-    -e AWS_PROFILE=$AWS_PROFILE \
-    -e AWS_REGION=us-west-2 \
-    -v $HOME/.aws:/home/computeruse/.aws \
-    -v $HOME/.anthropic:/home/computeruse/.anthropic \
-    -p 5900:5900 \
-    -p 8501:8501 \
-    -p 6080:6080 \
-    -p 8080:8080 \
-    -it ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+```powershell
+git clone https://github.com/JaffarL/claude-computer-use-session-manager.git
+Set-Location .\claude-computer-use-session-manager
+git switch docs/release-candidate
 ```
 
-Once the container is running, see the [Accessing the demo app](#accessing-the-demo-app) section below for instructions on how to connect to the interface.
+仓库为私有时，先在浏览器登录有权限的 GitHub 账号，或完成 `gh auth login`。
 
-#### Option 2: Use an access key and secret
+### 2. 启动
 
-```bash
-export AWS_ACCESS_KEY_ID=%your_aws_access_key%
-export AWS_SECRET_ACCESS_KEY=%your_aws_secret_access_key%
-export AWS_SESSION_TOKEN=%your_aws_session_token%
-docker run \
-    -e API_PROVIDER=bedrock \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN \
-    -e AWS_REGION=us-west-2 \
-    -v $HOME/.anthropic:/home/computeruse/.anthropic \
-    -p 5900:5900 \
-    -p 8501:8501 \
-    -p 6080:6080 \
-    -p 8080:8080 \
-    -it ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\dev.ps1
 ```
 
-Once the container is running, see the [Accessing the demo app](#accessing-the-demo-app) section below for instructions on how to connect to the interface.
+脚本会在缺少 `.env` 时从 `.env.example` 创建本地配置，构建镜像，启动 PostgreSQL、Redis 和 API，并等待 readiness 通过。
 
-### Vertex
+打开：
 
-You'll need to pass in Google Cloud credentials with appropriate permissions to use Claude on Vertex.
+- 控制台：<http://127.0.0.1:8000/>
+- OpenAPI：<http://127.0.0.1:8000/docs>
+- Readiness：<http://127.0.0.1:8000/health/ready>
 
-```bash
-docker build . -t computer-use-demo
-gcloud auth application-default login
-export VERTEX_REGION=%your_vertex_region%
-export VERTEX_PROJECT_ID=%your_vertex_project_id%
-docker run \
-    -e API_PROVIDER=vertex \
-    -e CLOUD_ML_REGION=$VERTEX_REGION \
-    -e ANTHROPIC_VERTEX_PROJECT_ID=$VERTEX_PROJECT_ID \
-    -v $HOME/.config/gcloud/application_default_credentials.json:/home/computeruse/.config/gcloud/application_default_credentials.json \
-    -p 5900:5900 \
-    -p 8501:8501 \
-    -p 6080:6080 \
-    -p 8080:8080 \
-    -it computer-use-demo
+默认使用确定性 Fake Agent，不需要 API Key，也不会产生模型费用。
+
+### 3. 页面演示
+
+1. 点击“新建隔离会话”；
+2. 输入任务并点击“运行任务”；
+3. 同时观察聊天消息、SSE 时间线和 noVNC 桌面；
+4. 刷新页面，确认消息和事件仍存在；
+5. 点击“停止”，确认桌面关闭且容器被回收。
+
+### 4. PowerShell 冒烟
+
+```powershell
+.\scripts\smoke.ps1
 ```
 
-Once the container is running, see the [Accessing the demo app](#accessing-the-demo-app) section below for instructions on how to connect to the interface.
+脚本会创建真实 sandbox、提交 Fake Agent 任务、核对 VNC 签发、消息和事件，最后自动删除测试会话；输出不会展示 JWT 或 API Key。
 
-This example shows how to use the Google Cloud Application Default Credentials to authenticate with Vertex.
-You can also set `GOOGLE_APPLICATION_CREDENTIALS` to use an arbitrary credential file, see the [Google Cloud Authentication documentation](https://cloud.google.com/docs/authentication/application-default-credentials#GAC) for more details.
+## 本地质量检查
 
-### Accessing the demo app
+首次准备 Python 环境：
 
-Once the container is running, open your browser to [http://localhost:8080](http://localhost:8080) to access the combined interface that includes both the agent chat and desktop view.
-
-The container stores settings like the API key and custom system prompt in `~/.anthropic/`. Mount this directory to persist these settings between container runs.
-
-Alternative access points:
-
-- Streamlit interface only: [http://localhost:8501](http://localhost:8501)
-- Desktop view only: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html)
-- Direct VNC connection: `vnc://localhost:5900` (for VNC clients)
-
-## Screen size
-
-Environment variables `WIDTH` and `HEIGHT` can be used to set the screen size. For example:
-
-```bash
-docker run \
-    -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-    -v $HOME/.anthropic:/home/computeruse/.anthropic \
-    -p 5900:5900 \
-    -p 8501:8501 \
-    -p 6080:6080 \
-    -p 8080:8080 \
-    -e WIDTH=1920 \
-    -e HEIGHT=1080 \
-    -it ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
 ```
 
-We do not recommend sending screenshots in resolutions above [XGA/WXGA](https://en.wikipedia.org/wiki/Display_resolution_standards#XGA) to avoid issues related to [image resizing](https://docs.claude.com/en/docs/build-with-claude/vision#evaluate-image-size).
-Relying on the image resizing behavior in the API will result in lower model accuracy and slower performance than implementing scaling in your tools directly. The `computer` tool implementation in this project demonstrates how to scale both images and coordinates from higher resolutions to the suggested resolutions.
+运行完整检查：
 
-When implementing computer use yourself, we recommend using XGA resolution (1024x768):
-
-- For higher resolutions: Scale the image down to XGA and let the model interact with this scaled version, then map the coordinates back to the original resolution proportionally.
-- For lower resolutions or smaller devices (e.g. mobile devices): Add black padding around the display area until it reaches 1024x768.
-
-## Development
-
-```bash
-./setup.sh  # configure venv, install development dependencies, and install pre-commit hooks
-docker build . -t computer-use-demo:local  # manually build the docker image (optional)
-export ANTHROPIC_API_KEY=%your_api_key%
-docker run \
-    -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-    -v $(pwd)/computer_use_demo:/home/computeruse/computer_use_demo/ `# mount local python module for development` \
-    -v $HOME/.anthropic:/home/computeruse/.anthropic \
-    -p 5900:5900 \
-    -p 8501:8501 \
-    -p 6080:6080 \
-    -p 8080:8080 \
-    -it computer-use-demo:local  # can also use ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+```powershell
+.\scripts\test.ps1
+.\scripts\security-check.ps1
 ```
 
-The docker run command above mounts the repo inside the docker image, such that you can edit files from the host. Streamlit is already configured with auto reloading.
+当前基线：23 个 pytest 测试，同时检查 Ruff、依赖一致性、JavaScript 语法、开发/生产 Compose 和常见密钥泄露。
+
+## 停止与清理
+
+只停止服务并保留 PostgreSQL/Redis 数据：
+
+```powershell
+.\scripts\cleanup.ps1 -Confirm:$false
+```
+
+连同项目数据卷一起删除：
+
+```powershell
+.\scripts\cleanup.ps1 -RemoveVolumes -Confirm:$false
+```
+
+`-RemoveVolumes` 会永久删除本地会话、消息和事件数据。增加 `-RemoveImages` 还会删除两个项目本地镜像。
+
+## 配置
+
+本地配置只写入 Git 忽略的 `.env`。不要把真实密钥写入源码、截图、日志或提交历史。
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `POSTGRES_USER/PASSWORD/DB` | 开发值 | 本地 PostgreSQL |
+| `RUNTIME_NAMESPACE` | `computer-use-session-manager` | 隔离同一 Docker Engine 上的不同控制面 |
+| `SANDBOX_PUBLIC_HOST` | `127.0.0.1` | noVNC 返回地址的主机名 |
+| `SANDBOX_MEMORY_LIMIT` | `768m` | 单 sandbox 内存上限 |
+| `SANDBOX_NANO_CPUS` | `1000000000` | 单 sandbox CPU 上限（1 核） |
+| `SANDBOX_PIDS_LIMIT` | `256` | 单 sandbox 进程数上限 |
+| `VNC_ACCESS_TTL_SECONDS` | `120` | noVNC JWT 有效秒数 |
+| `ANTHROPIC_API_KEY` | 空 | 预留的 Anthropic/兼容服务凭据 |
+| `ANTHROPIC_BASE_URL` | 空 | 兼容服务入口；官方 Anthropic 留空 |
+| `ANTHROPIC_MODEL` | 空 | 目标服务实际支持的模型 ID |
+
+当前发布候选后端固定使用 Fake Agent 验证并发、持久化和实时协议。仓库保留了固定版本的 Anthropic Computer Use 上游代码与 UI 无关 callback adapter，但真实模型执行器尚未接入每会话远程桌面通道，因此填写后三个变量不会自动产生真实模型调用；详见“已知边界”。
+
+## API
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/api/v1/sessions` | 创建会话和独立 sandbox |
+| `GET` | `/api/v1/sessions` | 分页列出会话 |
+| `GET` | `/api/v1/sessions/{id}` | 查询会话状态 |
+| `POST` | `/api/v1/sessions/{id}/runs` | 提交任务，支持 `Idempotency-Key` |
+| `GET` | `/api/v1/sessions/{id}/runs` | 查询运行历史 |
+| `GET` | `/api/v1/sessions/{id}/messages` | 查询聊天历史 |
+| `GET` | `/api/v1/sessions/{id}/events` | SSE 实时流和断线补发 |
+| `GET` | `/api/v1/sessions/{id}/events/history` | 查询持久化事件 |
+| `POST` | `/api/v1/sessions/{id}/vnc-access` | 签发短期 noVNC 地址 |
+| `POST` | `/api/v1/sessions/{id}/stop` | 幂等停止会话 |
+| `DELETE` | `/api/v1/sessions/{id}` | 销毁 runtime 并软删除会话 |
+
+可复制的请求见 [PowerShell API 示例](docs/api-examples.md)。
+
+## 生产 Compose 模板
+
+```powershell
+docker compose -f compose.yaml -f compose.production.yaml config
+docker compose -f compose.yaml -f compose.production.yaml up -d --build
+```
+
+生产 override 增加本机回环端口、只读 API 文件系统、临时目录、capability 限制、日志轮转、自动重启和优雅停止时间。它是远程部署的基础模板，不代表已经具备不可信多租户生产安全性。远程入口、TLS/WSS 和密钥托管要求见 [部署说明](docs/deployment.md) 与 [安全说明](docs/security.md)。
+
+## 目录
+
+```text
+backend/                 FastAPI、数据库、事件、runtime 和测试
+docker/                  API 与 sandbox 镜像
+sandbox/                 桌面进程监管和 healthcheck
+scripts/                 PowerShell 开发、测试、冒烟、安全和清理脚本
+docs/                    架构、安全、部署、API、故障排查和演示文档
+docs/acceptance/         每个阶段的命令输出、截图和结论
+compose.yaml             本地开发栈
+compose.production.yaml  生产约束 override
+```
+
+## 关键设计选择
+
+- PostgreSQL 是最终事实来源；Redis 只做低延迟通知，断线后按数据库 ID 补发；
+- Session/Run 状态通过事务、行锁和唯一约束收敛；同会话双提交明确返回 202/409；
+- runtime 使用 session UUID 稳定命名，并结合 Docker 名称唯一性避免重复创建；
+- noVNC JWT 绑定单个容器的 HMAC 密钥和 VNC 目标，A 会话令牌不能访问 B；
+- API lifespan 在停止时结束 reconciler，并关闭 Docker、Redis 和数据库连接。
+
+## 验收证据
+
+- [第二阶段：会话与历史 API](docs/acceptance/phase-2-session-api/README.md)
+- [第三阶段：Agent 事件与 SSE](docs/acceptance/phase-3-agent-sse/README.md)
+- [第四阶段：隔离 runtime 与 noVNC](docs/acceptance/phase-4-isolated-runtime/README.md)
+- [第五阶段：演示前端](docs/acceptance/phase-5-demo-frontend/README.md)
+
+## 已知边界
+
+- 当前任务执行使用确定性 Fake Agent；真实 Anthropic callback 转换已测试，但完整的真实模型 → 每会话远程桌面工具桥接仍需实现；
+- API 没有用户登录、session 所有权、审计和速率限制；
+- 本地 API 挂载 Docker socket，控制面应被视为可信高权限组件；
+- loopback 随机 noVNC 端口只适合本机演示，远程部署必须使用同源 HTTPS/WSS 代理；
+- Docker 容器不是强安全虚拟机，不应在桌面中使用个人账号或生产凭据。
+
+故障处理见 [故障排查](docs/troubleshooting.md)，五分钟录屏流程见 [演示脚本](docs/demo-script.md)。
+
+## 上游与许可
+
+Computer Use 基线来自 Anthropic `claude-quickstarts/computer-use-demo` 固定提交，详情见 [上游溯源](docs/upstream.md)。原始 MIT License 保留在仓库根目录。

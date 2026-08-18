@@ -9,7 +9,7 @@
 | 第四阶段：隔离运行时与 noVNC | [查看归档](./phase-4-isolated-runtime/README.md) | 2026-08-18 10:20–10:39 | 通过；用户已确认 |
 | 第五阶段：基础演示前端 | [查看归档](./phase-5-demo-frontend/README.md) | 2026-08-18 10:58–11:18 | 通过；用户已确认 |
 | 第六阶段：发布候选质量与文档 | [查看归档](./phase-6-release-candidate/README.md) | 2026-08-18 11:18–11:48 | Codex 验收通过；待用户确认 |
-| 第七阶段：真实 Anthropic 工具桥 | [查看归档](./phase-7-anthropic-bridge/README.md) | 2026-08-18 22:20–22:41 | 无费用验收通过；真实计费验收待用户确认 |
+| 第七阶段：真实 Anthropic 工具桥 | [查看归档](./phase-7-anthropic-bridge/README.md) | 2026-08-18 22:20–23:12 | 真实计费端到端验收通过 |
 
 ## 使用方法
 

@@ -2,7 +2,7 @@
 
 ## 目标
 
-本项目把 Anthropic 官方单会话 Computer Use 演示改造成一个可以管理多个隔离会话的后端。当前已经具备会话 API、持久化历史和实时事件流；桌面运行时与 noVNC 代理将在后续里程碑加入。
+本项目把 Anthropic 官方单会话 Computer Use 演示改造成一个可以管理多个隔离会话的后端。当前已经具备会话 API、持久化历史、实时事件流，以及每会话独立的 Docker 桌面运行时和短期 noVNC 访问令牌。
 
 ## 控制面边界
 
@@ -14,8 +14,11 @@ flowchart LR
     A --> E["Agent 执行器"]
     E --> P
     E --> R
-    A -.-> D["Docker RuntimeProvider：后续里程碑"]
-    D -.-> S["每会话独立 Sandbox：后续里程碑"]
+    A --> D["Docker RuntimeProvider"]
+    D --> S1["Session A：Xvfb + Firefox + VNC"]
+    D --> S2["Session B：Xvfb + Firefox + VNC"]
+    C -->|"短期 JWT + noVNC WebSocket"| S1
+    C -->|"短期 JWT + noVNC WebSocket"| S2
 ```
 
 - FastAPI 负责请求校验、状态转换和对外协议，不保存进程内业务状态；
@@ -35,17 +38,22 @@ backend/
 │  ├─ db/           # 数据库模型和连接
 │  ├─ events/       # Redis 发布订阅抽象
 │  ├─ repositories/ # 持久化查询
+│  ├─ runtime/      # Fake/Docker 运行时提供者
 │  ├─ schemas/      # API 数据模型
 │  └─ services/     # 业务服务
 ├─ migrations/      # Alembic 迁移
 └─ tests/           # 后端测试
+docker/
+└─ sandbox.Dockerfile
+sandbox/
+├─ entrypoint.sh    # X11、桌面、VNC、noVNC 进程监管
+└─ healthcheck.py
 ```
 
 ## 健康检查语义
 
 - `GET /health/live`：只证明 API 进程能够响应；
-- `GET /health/ready`：实际检查 PostgreSQL 和 Redis，任一不可用就返回 HTTP 503；
-- Docker Engine 与 runtime reconciler 的检查将在 RuntimeProvider 落地时加入 readiness。
+- `GET /health/ready`：实际检查 PostgreSQL、Redis；Docker 模式下还会检查 Docker Engine，任一不可用就返回 HTTP 503。
 
 ## 已确定的设计决策
 
@@ -55,6 +63,20 @@ backend/
 4. 配置只从环境变量和本地 `.env` 读取，真实 Key 不进入代码和 Git；
 5. API 镜像启动时先执行 migration，再启动 Uvicorn；
 6. CI 使用 fake dependency，不调用真实 Claude API，也不产生费用。
+
+## Docker 桌面运行时
+
+`DockerRuntimeProvider` 以 session UUID 作为稳定容器名和标签的一部分。创建流程同时使用进程内 session 锁与 Docker 唯一容器名：同一 API 进程内的并发调用被串行化；多个控制面实例竞争时，由 Docker 的名称唯一性兜底，再复用已经创建的容器。
+
+每个 sandbox 使用独立的 Xvfb display、浏览器 profile、文件系统、x11vnc 和 noVNC 进程。控制面只把 `6080/tcp` 映射到主机 `127.0.0.1` 的随机端口，不公开原始 `5900/tcp`。容器默认限制为 1 核 CPU、768 MiB 内存、256 个进程和 256 MiB 共享内存，并启用 `cap_drop=ALL` 与 `no-new-privileges`。
+
+容器标签保存 session ID、过期时间和组件类型。控制面启动及之后每 30 秒执行对账：恢复数据库与容器的绑定、清理过期/孤儿/重复容器，并把异常退出的活跃会话标记为失败。API 停在 `STOPPING` 中间时，重启对账会在确认容器已退出后收敛为 `STOPPED`。
+
+## noVNC 授权
+
+`POST /api/v1/sessions/{session_id}/vnc-access` 只允许 `READY` 或 `RUNNING` 会话调用。每个 sandbox 创建时生成独立的 256 位 HMAC 密钥，控制面签发默认 120 秒有效的 JWT；websockify 在建立 WebSocket 前验证签名、到期时间和目标 VNC 地址。因此 A 的 token 不能访问 B 的桌面。
+
+当前开发模式返回绑定主机 loopback 随机端口的 URL，适合本机演示。生产远程部署不能直接照搬 Docker socket 和随机端口方案，应通过只暴露 443 的反向代理/runtime-manager 转发 noVNC WebSocket；具体边界见 [安全说明](./security.md)。
 
 ## 实时事件协议
 

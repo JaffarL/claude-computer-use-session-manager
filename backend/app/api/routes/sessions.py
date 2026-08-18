@@ -1,8 +1,10 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Response, status
+from fastapi.responses import StreamingResponse
 
+from app.schemas.events import EventListResponse
 from app.schemas.sessions import (
     ErrorResponse,
     MessageListResponse,
@@ -14,6 +16,8 @@ from app.schemas.sessions import (
     SessionListResponse,
     SessionResponse,
 )
+from app.services.event_stream import EventStreamService, get_event_stream_service
+from app.services.run_executor import RunExecutor, get_run_executor
 from app.services.sessions import SessionService, get_session_service
 
 router = APIRouter(prefix="/sessions")
@@ -82,7 +86,9 @@ async def create_run(
     session_id: uuid.UUID,
     payload: RunCreate,
     response: Response,
+    background_tasks: BackgroundTasks,
     service: Annotated[SessionService, Depends(get_session_service)],
+    executor: Annotated[RunExecutor, Depends(get_run_executor)],
     idempotency_key: Annotated[
         str | None,
         Header(alias="Idempotency-Key", min_length=1, max_length=255),
@@ -96,6 +102,8 @@ async def create_run(
     )
     if replayed:
         response.headers["Idempotency-Replayed"] = "true"
+    else:
+        background_tasks.add_task(executor.execute, run.id)
     return RunResponse.model_validate(run)
 
 
@@ -125,6 +133,49 @@ async def list_messages(
     """按稳定序号查询持久化聊天历史。"""
     messages = await service.list_messages(session_id)
     return MessageListResponse(items=[MessageResponse.model_validate(item) for item in messages])
+
+
+@router.get(
+    "/{session_id}/events/history",
+    response_model=EventListResponse,
+    responses={404: ERROR_RESPONSES[404]},
+)
+async def list_event_history(
+    session_id: uuid.UUID,
+    service: Annotated[EventStreamService, Depends(get_event_stream_service)],
+    after_id: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 1000,
+) -> EventListResponse:
+    """查询事件历史，便于调试和非流式客户端恢复。"""
+    return EventListResponse(items=await service.history(session_id, after_id, limit=limit))
+
+
+@router.get(
+    "/{session_id}/events",
+    response_class=StreamingResponse,
+    responses={404: ERROR_RESPONSES[404]},
+)
+async def stream_events(
+    session_id: uuid.UUID,
+    service: Annotated[EventStreamService, Depends(get_event_stream_service)],
+    last_event_id: Annotated[
+        int | None,
+        Header(alias="Last-Event-ID", ge=0),
+    ] = None,
+    after_id: Annotated[int | None, Query(ge=0)] = None,
+) -> StreamingResponse:
+    """实时推送事件；支持 Last-Event-ID 断线补发。"""
+    await service.ensure_session_exists(session_id)
+    cursor = max(last_event_id or 0, after_id or 0)
+    return StreamingResponse(
+        service.stream(session_id, cursor),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post(

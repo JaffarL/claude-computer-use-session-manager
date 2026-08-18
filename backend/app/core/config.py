@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,9 +41,25 @@ class Settings(BaseSettings):
     vnc_access_ttl_seconds: int = 120
 
     anthropic_api_key: SecretStr | None = None
+    # Some Anthropic-compatible gateways expose the credential as AUTH_TOKEN.
+    anthropic_auth_token: SecretStr | None = None
     anthropic_base_url: str | None = None
     anthropic_model: str | None = None
     api_provider: str = "anthropic"
+
+    @model_validator(mode="after")
+    def normalize_anthropic_credential(self) -> "Settings":
+        """Fall back to AUTH_TOKEN when API_KEY is not supplied."""
+        if (
+            (
+                self.anthropic_api_key is None
+                or not self.anthropic_api_key.get_secret_value().strip()
+            )
+            and self.anthropic_auth_token is not None
+            and self.anthropic_auth_token.get_secret_value().strip()
+        ):
+            self.anthropic_api_key = self.anthropic_auth_token
+        return self
 
 
 @lru_cache

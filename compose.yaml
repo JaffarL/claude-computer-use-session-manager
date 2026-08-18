@@ -43,6 +43,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-computeruse}:${POSTGRES_PASSWORD:-computeruse_dev}@postgres:5432/${POSTGRES_DB:-computeruse}
       REDIS_URL: redis://redis:6379/0
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
       RUNTIME_PROVIDER: docker

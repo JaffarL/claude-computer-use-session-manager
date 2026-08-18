@@ -135,6 +135,7 @@ py -3.11 -m venv .venv
 | `SANDBOX_PIDS_LIMIT` | `256` | 单 sandbox 进程数上限 |
 | `VNC_ACCESS_TTL_SECONDS` | `120` | noVNC JWT 有效秒数 |
 | `ANTHROPIC_API_KEY` | 空 | 预留的 Anthropic/兼容服务凭据 |
+| `ANTHROPIC_AUTH_TOKEN` | 空 | Anthropic 兼容网关凭据别名；API_KEY 为空时自动回退 |
 | `ANTHROPIC_BASE_URL` | 空 | 兼容服务入口；官方 Anthropic 留空 |
 | `ANTHROPIC_MODEL` | 空 | 目标服务实际支持的模型 ID |
 

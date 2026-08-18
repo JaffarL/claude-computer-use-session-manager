@@ -171,7 +171,8 @@ class DockerRuntimeProvider:
                 "autoconnect": "1",
                 "resize": "scale",
                 "reconnect": "1",
-                "token": token,
+                # noVNC 只会把 `path` 传给 WebSocket；将 token 放进该路径的查询参数。
+                "path": f"websockify?token={token}",
             }
         )
         return VncAccess(

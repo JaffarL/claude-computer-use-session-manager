@@ -8,6 +8,7 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import close_database
+from app.events import close_event_broker
 
 
 @asynccontextmanager
@@ -15,6 +16,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """管理应用级资源。"""
     configure_logging()
     yield
+    await close_event_broker()
     await close_database()
 
 

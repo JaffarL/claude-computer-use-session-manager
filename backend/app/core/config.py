@@ -24,6 +24,9 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://computeruse:computeruse_dev@localhost:5432/computeruse"
     )
     redis_url: str = "redis://localhost:6379/0"
+    sse_heartbeat_seconds: float = 15.0
+    sse_queue_size: int = 100
+    fake_agent_step_delay_seconds: float = 0.08
 
     anthropic_api_key: SecretStr | None = None
     anthropic_base_url: str | None = None

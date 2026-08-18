@@ -30,3 +30,17 @@ class MessageRole(StrEnum):
     ASSISTANT = "ASSISTANT"
     TOOL = "TOOL"
     SYSTEM = "SYSTEM"
+
+
+class EventType(StrEnum):
+    """可持久化并通过 SSE 投递的业务事件。"""
+
+    SESSION_STATUS = "session.status"
+    RUN_STARTED = "run.started"
+    ASSISTANT_DELTA = "assistant.delta"
+    ASSISTANT_MESSAGE = "assistant.message"
+    TOOL_STARTED = "tool.started"
+    TOOL_RESULT = "tool.result"
+    SCREENSHOT_AVAILABLE = "screenshot.available"
+    RUN_COMPLETED = "run.completed"
+    RUN_FAILED = "run.failed"

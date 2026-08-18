@@ -71,7 +71,7 @@ sandbox/
 
 每个 sandbox 使用独立的 Xvfb display、浏览器 profile、文件系统、x11vnc 和 noVNC 进程。控制面只把 `6080/tcp` 映射到主机 `127.0.0.1` 的随机端口，不公开原始 `5900/tcp`。容器默认限制为 1 核 CPU、768 MiB 内存、256 个进程和 256 MiB 共享内存，并启用 `cap_drop=ALL` 与 `no-new-privileges`。
 
-容器标签保存 session ID、过期时间和组件类型。控制面启动及之后每 30 秒执行对账：恢复数据库与容器的绑定、清理过期/孤儿/重复容器，并把异常退出的活跃会话标记为失败。API 停在 `STOPPING` 中间时，重启对账会在确认容器已退出后收敛为 `STOPPED`。
+容器标签保存 runtime namespace、session ID、过期时间和组件类型。同一 Docker Engine 上的不同控制面使用不同 `RUNTIME_NAMESPACE`，reconciler 只查看自己的容器，避免交叉清理。控制面启动及之后每 30 秒执行对账：恢复数据库与容器的绑定、清理过期/孤儿/重复容器，并把异常退出的活跃会话标记为失败。API 停在 `STOPPING` 中间时，重启对账会在确认容器已退出后收敛为 `STOPPED`。
 
 ## noVNC 授权
 

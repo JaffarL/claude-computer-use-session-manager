@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     fake_agent_step_delay_seconds: float = 0.08
 
     runtime_provider: Literal["fake", "docker"] = "fake"
+    runtime_namespace: str = "computer-use-session-manager"
     sandbox_image: str = "computer-use-sandbox:local"
     sandbox_public_host: str = "127.0.0.1"
     sandbox_memory_limit: str = "768m"

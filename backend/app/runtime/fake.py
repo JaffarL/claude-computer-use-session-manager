@@ -69,6 +69,7 @@ def get_runtime_provider() -> RuntimeProvider:
     settings = get_settings()
     if settings.runtime_provider == "docker":
         return DockerRuntimeProvider(
+            namespace=settings.runtime_namespace,
             image=settings.sandbox_image,
             public_host=settings.sandbox_public_host,
             memory_limit=settings.sandbox_memory_limit,

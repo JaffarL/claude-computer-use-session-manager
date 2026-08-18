@@ -6,7 +6,7 @@
 - 验收分支：`feat/demo-frontend`
 - 功能提交：`4727bb9`、`bfd1844`
 - 验收人：Codex
-- 当前结论：Codex 自动验收通过，等待用户阶段确认
+- 当前结论：通过；用户已于 2026-08-18 确认并要求进入下一阶段
 - 环境：Windows 11、PowerShell、Docker Desktop、Codex In-app Browser
 
 ## 本阶段交付

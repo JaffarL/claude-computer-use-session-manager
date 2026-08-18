@@ -58,7 +58,7 @@ wss://agent.example.com/runtime/{session_id}/websockify
 - `.env` 只用于本地；远程环境使用云 Secrets Manager、Docker secret 或编排平台 secret；
 - API Key 只注入可信执行组件，不进入前端、数据库、截图或日志；
 - 定期轮换密钥，并对模型调用设置额度和告警；
-- 当前发布候选使用 Fake Agent，不会读取或消费 Anthropic Key。
+- 默认 `AGENT_PROVIDER=fake`，不会消费 Anthropic Key；仅在显式设置为 `anthropic` 后发起模型请求。
 
 ## 数据与备份
 

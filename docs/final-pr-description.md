@@ -32,8 +32,8 @@ docker compose -f compose.yaml -f compose.production.yaml config --quiet
 
 ## Known limitations
 
-- deterministic Fake Agent is used for the release-candidate execution path;
-- the upstream Anthropic callback adapter is tested, but a real model-to-remote-sandbox tool bridge is not yet wired;
+- deterministic Fake Agent remains the zero-cost default execution path;
+- a selectable Anthropic runner now binds computer/bash calls to the current session sandbox; billed end-to-end acceptance remains an explicit manual step;
 - authentication, ownership, audit, rate limiting, and the production same-origin VNC proxy remain future work;
 - the local API has trusted access to the Docker socket and is not a hostile multi-tenant boundary.
 

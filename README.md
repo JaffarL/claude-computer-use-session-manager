@@ -12,6 +12,7 @@
 - PostgreSQL 持久化和 Alembic 迁移；
 - Redis 实时发布、标准 SSE、心跳和 `Last-Event-ID` 断线补发；
 - 同会话并发保护、幂等键和跨会话并行执行；
+- 可切换的 Fake/Anthropic Agent，真实模式把模型工具调用定向到对应会话 sandbox；
 - 一会话一 Docker sandbox：Xvfb、Openbox、Firefox、x11vnc、websockify/noVNC；
 - 每容器独立短期 VNC JWT，CPU、内存、PID、共享内存和权限限制；
 - API 重启后的 runtime 恢复，以及过期、孤儿和重复容器回收；
@@ -134,12 +135,15 @@ py -3.11 -m venv .venv
 | `SANDBOX_NANO_CPUS` | `1000000000` | 单 sandbox CPU 上限（1 核） |
 | `SANDBOX_PIDS_LIMIT` | `256` | 单 sandbox 进程数上限 |
 | `VNC_ACCESS_TTL_SECONDS` | `120` | noVNC JWT 有效秒数 |
-| `ANTHROPIC_API_KEY` | 空 | 预留的 Anthropic/兼容服务凭据 |
+| `AGENT_PROVIDER` | `fake` | `fake` 为零费用测试；`anthropic` 启用真实模型 |
+| `ANTHROPIC_API_KEY` | 空 | Anthropic/兼容服务凭据 |
 | `ANTHROPIC_AUTH_TOKEN` | 空 | Anthropic 兼容网关凭据别名；API_KEY 为空时自动回退 |
 | `ANTHROPIC_BASE_URL` | 空 | 兼容服务入口；官方 Anthropic 留空 |
 | `ANTHROPIC_MODEL` | 空 | 目标服务实际支持的模型 ID |
+| `ANTHROPIC_MAX_TOKENS` | `4096` | 每轮模型响应的 token 上限 |
+| `ANTHROPIC_MAX_ITERATIONS` | `30` | 单任务最大模型/工具循环轮数 |
 
-当前发布候选后端固定使用 Fake Agent 验证并发、持久化和实时协议。仓库保留了固定版本的 Anthropic Computer Use 上游代码与 UI 无关 callback adapter，但真实模型执行器尚未接入每会话远程桌面通道，因此填写后三个变量不会自动产生真实模型调用；详见“已知边界”。
+默认继续使用 Fake Agent，确保自动化测试和演示不会产生费用。设置 `AGENT_PROVIDER=anthropic` 并配置凭据、Base URL 和模型后，真实执行器会调用 Anthropic Computer Use API；`computer` 与 `bash` 工具通过 Docker Engine 只在当前 session 绑定的 sandbox 内执行。首次真实测试见 [Anthropic 手工验收](docs/anthropic-manual-test.md)。
 
 ## API
 
@@ -195,10 +199,12 @@ compose.production.yaml  生产约束 override
 - [第三阶段：Agent 事件与 SSE](docs/acceptance/phase-3-agent-sse/README.md)
 - [第四阶段：隔离 runtime 与 noVNC](docs/acceptance/phase-4-isolated-runtime/README.md)
 - [第五阶段：演示前端](docs/acceptance/phase-5-demo-frontend/README.md)
+- [第六阶段：发布候选质量与文档](docs/acceptance/phase-6-release-candidate/README.md)
+- [第七阶段：真实 Anthropic 工具桥](docs/acceptance/phase-7-anthropic-bridge/README.md)
 
 ## 已知边界
 
-- 当前任务执行使用确定性 Fake Agent；真实 Anthropic callback 转换已测试，但完整的真实模型 → 每会话远程桌面工具桥接仍需实现；
+- 默认执行路径仍是确定性 Fake Agent；真实 Anthropic 工具桥已完成自动化与无费用 sandbox 实测，计费端到端验收需显式切换后执行；
 - API 没有用户登录、session 所有权、审计和速率限制；
 - 本地 API 挂载 Docker socket，控制面应被视为可信高权限组件；
 - loopback 随机 noVNC 端口只适合本机演示，远程部署必须使用同源 HTTPS/WSS 代理；

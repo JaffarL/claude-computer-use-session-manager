@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.agents import AgentEventSink, AgentRunner, FakeAgentRunner
+from app.agents import AgentEventSink, AgentRunner, AnthropicAgentRunner, FakeAgentRunner
 from app.core.config import get_settings
 from app.db.models import AgentRun, AgentSession, ChatMessage
 from app.db.session import get_session_factory
@@ -75,7 +75,11 @@ class RunExecutor:
             )
 
             try:
-                final_text = await self._agent_runner.run(run.input, event_sink)
+                final_text = await self._agent_runner.run(
+                    run.input,
+                    event_sink,
+                    runtime_id=session.runtime_id,
+                )
                 await database_session.refresh(run)
                 await database_session.refresh(session)
                 if run.status == RunStatus.CANCELLED.value:
@@ -130,8 +134,22 @@ class RunExecutor:
 
 def get_run_executor() -> RunExecutor:
     settings = get_settings()
+    if settings.agent_provider == "anthropic":
+        if settings.anthropic_api_key is None:
+            raise RuntimeError("AGENT_PROVIDER=anthropic 时必须配置 Anthropic 凭据。")
+        if not settings.anthropic_model:
+            raise RuntimeError("AGENT_PROVIDER=anthropic 时必须配置 ANTHROPIC_MODEL。")
+        agent_runner: AgentRunner = AnthropicAgentRunner(
+            api_key=settings.anthropic_api_key.get_secret_value(),
+            base_url=settings.anthropic_base_url,
+            model=settings.anthropic_model,
+            max_tokens=settings.anthropic_max_tokens,
+            max_iterations=settings.anthropic_max_iterations,
+        )
+    else:
+        agent_runner = FakeAgentRunner(settings.fake_agent_step_delay_seconds)
     return RunExecutor(
         get_session_factory(),
         get_event_broker(),
-        FakeAgentRunner(settings.fake_agent_step_delay_seconds),
+        agent_runner,
     )

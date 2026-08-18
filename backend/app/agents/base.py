@@ -8,4 +8,10 @@ class AgentEventSink(Protocol):
 
 
 class AgentRunner(Protocol):
-    async def run(self, user_input: str, event_sink: AgentEventSink) -> str: ...
+    async def run(
+        self,
+        user_input: str,
+        event_sink: AgentEventSink,
+        *,
+        runtime_id: str | None = None,
+    ) -> str: ...

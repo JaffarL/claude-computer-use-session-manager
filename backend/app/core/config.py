@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     sse_heartbeat_seconds: float = 15.0
     sse_queue_size: int = 100
     fake_agent_step_delay_seconds: float = 0.08
+    agent_provider: Literal["fake", "anthropic"] = "fake"
 
     runtime_provider: Literal["fake", "docker"] = "fake"
     runtime_namespace: str = "computer-use-session-manager"
@@ -45,6 +46,8 @@ class Settings(BaseSettings):
     anthropic_auth_token: SecretStr | None = None
     anthropic_base_url: str | None = None
     anthropic_model: str | None = None
+    anthropic_max_tokens: int = 4096
+    anthropic_max_iterations: int = 30
     api_provider: str = "anthropic"
 
     @model_validator(mode="after")

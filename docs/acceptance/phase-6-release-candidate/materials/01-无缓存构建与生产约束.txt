@@ -1,0 +1,31 @@
+第六阶段：无缓存构建与生产约束
+时间：2026-08-18 11:31–11:40 Asia/Shanghai
+
+命令：
+docker compose -p ccu-release-clean -f compose.yaml -f compose.production.yaml build --no-cache
+
+结果：
+- ccu-release-clean-api 构建成功
+- computer-use-sandbox:local 构建成功
+- Debian 下载约 201 MB 固定软件包
+- Firefox/Xvfb/Openbox/x11vnc/websockify/noVNC 完整安装
+- noVNC 固定版本 1.5.0
+
+空数据卷启动：
+- ccu-release-clean_postgres-data 新建
+- ccu-release-clean_redis-data 新建
+- Alembic 0001 -> 0002 -> 0003 全部执行
+- readiness HTTP 200
+
+API HostConfig：
+readonly_rootfs=True
+cap_drop=ALL
+security_opt=no-new-privileges:true
+restart=unless-stopped
+log_driver=json-file
+log_max_size=10m
+log_max_file=3
+
+镜像：
+sandbox size=343883749 bytes
+api size=70899180 bytes

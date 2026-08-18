@@ -1,8 +1,11 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.errors import install_exception_handlers
 from app.api.router import api_router
@@ -12,6 +15,8 @@ from app.db.session import close_database, get_session_factory
 from app.events import close_event_broker
 from app.runtime import close_runtime_provider, get_runtime_provider
 from app.services.runtime_reconciler import RuntimeReconciler
+
+STATIC_DIRECTORY = Path(__file__).resolve().parent / "static"
 
 
 @asynccontextmanager
@@ -53,6 +58,13 @@ def create_app() -> FastAPI:
     )
     install_exception_handlers(application)
     application.include_router(api_router)
+    application.mount("/static", StaticFiles(directory=STATIC_DIRECTORY), name="static")
+
+    @application.get("/", include_in_schema=False)
+    async def frontend() -> FileResponse:
+        """提供与 API 同源的零构建演示前端。"""
+        return FileResponse(STATIC_DIRECTORY / "index.html")
+
     return application
 
 

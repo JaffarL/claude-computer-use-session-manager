@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Computer Use Agent 多会话控制台：创建隔离桌面、查看实时事件和聊天历史。"
+    />
+    <title>Computer Use 会话控制台</title>
+    <link rel="stylesheet" href="/static/app.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="会话导航">
+        <header class="brand">
+          <div class="brand-mark" aria-hidden="true">CU</div>
+          <div>
+            <p class="eyebrow">CAMBIOML CHALLENGE</p>
+            <h1>Computer Use</h1>
+          </div>
+        </header>
+
+        <button class="button button-primary create-button" id="open-create" type="button">
+          <span aria-hidden="true">＋</span>
+          新建隔离会话
+        </button>
+
+        <div class="sidebar-heading">
+          <span>会话</span>
+          <span class="count" id="session-count">0</span>
+        </div>
+        <nav class="session-list" id="session-list" aria-live="polite"></nav>
+
+        <footer class="sidebar-footer">
+          <span class="health-dot" id="health-dot" aria-hidden="true"></span>
+          <span id="health-label">正在检查服务…</span>
+        </footer>
+      </aside>
+
+      <main class="workspace">
+        <header class="workspace-header">
+          <div class="session-heading">
+            <p class="eyebrow">ACTIVE SESSION</p>
+            <div class="session-title-row">
+              <h2 id="current-title">请选择一个会话</h2>
+              <span class="status-badge status-neutral" id="current-status">未选择</span>
+            </div>
+            <p class="session-id" id="current-id">创建会话后即可提交任务并观察隔离桌面</p>
+          </div>
+          <div class="header-actions">
+            <button class="button button-ghost" id="refresh-session" type="button" disabled>
+              刷新
+            </button>
+            <button class="button button-warning" id="stop-session" type="button" disabled>
+              停止
+            </button>
+            <button class="button button-danger" id="delete-session" type="button" disabled>
+              删除
+            </button>
+          </div>
+        </header>
+
+        <section class="dashboard" id="dashboard" aria-live="polite">
+          <section class="panel conversation-panel" aria-label="任务与聊天历史">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AGENT</p>
+                <h3>任务与对话</h3>
+              </div>
+              <span class="connection-state" id="stream-state">SSE 未连接</span>
+            </div>
+
+            <div class="message-list empty-state" id="message-list">
+              <div class="empty-illustration" aria-hidden="true">⌁</div>
+              <h4>还没有选择会话</h4>
+              <p>从左侧创建一个独立桌面，随后提交浏览器任务。</p>
+            </div>
+
+            <form class="composer" id="run-form">
+              <label class="sr-only" for="task-input">任务内容</label>
+              <textarea
+                id="task-input"
+                name="task"
+                rows="3"
+                maxlength="20000"
+                placeholder="例如：打开浏览器并查看 example.com"
+                disabled
+              ></textarea>
+              <div class="composer-footer">
+                <span class="composer-hint">Ctrl + Enter 提交</span>
+                <button class="button button-primary" id="submit-run" type="submit" disabled>
+                  运行任务
+                  <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel desktop-panel" aria-label="隔离桌面">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">ISOLATED DESKTOP</p>
+                <h3>实时桌面</h3>
+              </div>
+              <button class="icon-button" id="reload-vnc" type="button" disabled title="刷新桌面令牌">
+                ↻
+              </button>
+            </div>
+            <div class="desktop-stage" id="desktop-stage">
+              <div class="desktop-placeholder" id="desktop-placeholder">
+                <div class="monitor-icon" aria-hidden="true"><span></span></div>
+                <h4>桌面尚未连接</h4>
+                <p>选择处于 READY 或 RUNNING 状态的会话。</p>
+              </div>
+              <iframe
+                id="vnc-frame"
+                title="会话 noVNC 桌面"
+                referrerpolicy="no-referrer"
+                allow="clipboard-read; clipboard-write"
+              ></iframe>
+            </div>
+            <div class="desktop-meta">
+              <span><i class="meta-dot"></i>1024 × 768</span>
+              <span id="vnc-expiry">短期令牌未签发</span>
+            </div>
+          </section>
+
+          <section class="panel event-panel" aria-label="实时事件">
+            <div class="panel-header event-heading">
+              <div>
+                <p class="eyebrow">LIVE EVENTS</p>
+                <h3>执行时间线</h3>
+              </div>
+              <span class="event-counter" id="event-count">0 events</span>
+            </div>
+            <div class="event-list empty-state compact" id="event-list">
+              <p>事件会按 PostgreSQL ID 顺序出现在这里。</p>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="create-dialog" id="create-dialog">
+      <form method="dialog" class="dialog-card" id="create-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">NEW SANDBOX</p>
+            <h2>创建隔离会话</h2>
+          </div>
+          <button class="icon-button" id="close-create" type="button" aria-label="关闭">×</button>
+        </div>
+        <p class="dialog-copy">系统会创建一个独立 Docker 桌面，并为它分配单独的浏览器与 VNC 通道。</p>
+        <label class="field-label" for="session-title">会话名称</label>
+        <input
+          id="session-title"
+          name="title"
+          maxlength="120"
+          autocomplete="off"
+          placeholder="例如：产品调研 A"
+          required
+        />
+        <div class="dialog-actions">
+          <button class="button button-ghost" id="cancel-create" type="button">取消</button>
+          <button class="button button-primary" id="confirm-create" type="submit">创建桌面</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast-region" id="toast-region" aria-live="assertive"></div>
+  </body>
+</html>

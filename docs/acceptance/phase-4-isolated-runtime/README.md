@@ -6,7 +6,7 @@
 - 验收分支：`feat/isolated-runtime-vnc`
 - 功能提交：`9dff315`、`0b7796a`、`6547cef`
 - 验收人：Codex
-- 验收结论：通过，等待用户查看截图并确认阶段验收
+- 验收结论：通过；用户已于 2026-08-18 确认
 - 环境：Windows 11、PowerShell、Docker Desktop、FastAPI、PostgreSQL、Redis
 
 ## 验收目标

@@ -1,0 +1,40 @@
+第五阶段真实浏览器主流程
+时间：2026-08-18 10:58–11:06 Asia/Shanghai
+浏览器：Codex In-app Browser
+地址：http://127.0.0.1:8000/
+
+页面资源：
+GET /                 200 text/html
+GET /static/app.css   200 text/css
+GET /static/app.js    200 application/javascript
+GET /health/ready     PostgreSQL、Redis、Docker 均正常
+
+真实页面创建：
+session=5bc862e7-0df0-4138-ab3b-2941aa26b630
+title=第五阶段 UI 验收
+runtime=670e3aa6...
+status=READY
+host_port=32773
+
+页面任务输入：
+通过前端提交任务并验证 SSE 实时更新
+
+持久化消息：
+#1 USER  通过前端提交任务并验证 SSE 实时更新
+#2 AI    模拟任务已完成：通过前端提交任务并验证 SSE 实时更新
+
+SSE/历史事件：
+#49 run.started
+#50 assistant.delta
+#51 assistant.delta
+#52 tool.started
+#53 tool.result
+#54 screenshot.available
+#55 assistant.message
+#56 run.completed
+
+刷新恢复结论：
+整页 reload 后仍显示同一 session、2 条消息、8 条事件、SSE 已连接；
+noVNC iframe 内部语义快照显示“已连接（未加密）到 session-5bc862e70df0:1”。
+
+结论：页面主流程通过，业务状态来自后端持久化而非浏览器内存。

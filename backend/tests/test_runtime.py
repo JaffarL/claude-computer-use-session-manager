@@ -118,7 +118,7 @@ class FakeDockerClient:
 def make_docker_provider(client: FakeDockerClient) -> DockerRuntimeProvider:
     return DockerRuntimeProvider(
         image="computer-use-sandbox:test",
-        public_host="localhost",
+        public_host="127.0.0.1",
         memory_limit="768m",
         nano_cpus=1_000_000_000,
         pids_limit=256,
@@ -168,7 +168,8 @@ async def test_vnc_jwt_is_short_lived_and_bound_to_one_container() -> None:
     signing_key = base64.urlsafe_b64decode(encoded_key + "=" * (-len(encoded_key) % 4))
 
     access = await provider.issue_vnc_access(handle.runtime_id)
-    token = parse_qs(urlparse(access.url).query)["token"][0]
+    websocket_path = parse_qs(urlparse(access.url).query)["path"][0]
+    token = parse_qs(urlparse(websocket_path).query)["token"][0]
     claims = jwt.decode(token, signing_key, algorithms=["HS256"])
 
     other_handle = await provider.create(uuid.uuid4(), expires_at)
@@ -185,7 +186,7 @@ async def test_vnc_jwt_is_short_lived_and_bound_to_one_container() -> None:
     assert claims["host"] == "127.0.0.1"
     assert claims["port"] == 5900
     assert 0 < claims["exp"] - int(datetime.now(UTC).timestamp()) <= 120
-    assert access.url.startswith("http://localhost:49001/vnc.html?")
+    assert access.url.startswith("http://127.0.0.1:49001/vnc.html?")
     with pytest.raises(jwt.InvalidSignatureError):
         jwt.decode(token, other_signing_key, algorithms=["HS256"])
 

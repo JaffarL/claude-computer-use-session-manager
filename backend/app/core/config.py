@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     runtime_provider: Literal["fake", "docker"] = "fake"
     sandbox_image: str = "computer-use-sandbox:local"
-    sandbox_public_host: str = "localhost"
+    sandbox_public_host: str = "127.0.0.1"
     sandbox_memory_limit: str = "768m"
     sandbox_nano_cpus: int = 1_000_000_000
     sandbox_pids_limit: int = 256

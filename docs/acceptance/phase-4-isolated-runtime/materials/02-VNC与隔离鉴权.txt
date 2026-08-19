@@ -1,0 +1,24 @@
+单容器协议冒烟：
+HTTP=200 content_type=text/html
+VALID_TOKEN=b'RFB 003.008\n'
+INVALID_TOKEN=rejected (InvalidMessage)
+
+双容器结果：
+SESSION=ae84d6d1-bc8e-484b-88a5-e57013fbcf97 PORT=32769 HTTP=200
+SESSION=051c0f10-627d-44d8-8a9d-4751001d1fd6 PORT=32770 HTTP=200
+OWN_TOKEN_1=b'RFB 003.008\n'
+OWN_TOKEN_2=b'RFB 003.008\n'
+CROSS_TOKEN=rejected (InvalidMessage)
+
+资源限制（两个容器一致）：
+memory=805306368
+nano_cpus=1000000000
+pids=256
+cap_drop=["ALL"]
+security=["no-new-privileges:true"]
+
+截图说明：
+01-session-a.png：绿色 Firefox 页面，显示 Session A 和 ae84d6d1。
+02-session-b.png：紫色 Firefox 页面，显示 Session B 和 051c0f10。
+
+注意：归档没有保存尚未过期的完整 JWT，避免把临时访问凭据写入 Git。

@@ -15,6 +15,7 @@ from app.schemas.sessions import (
     SessionCreate,
     SessionListResponse,
     SessionResponse,
+    VncAccessResponse,
 )
 from app.services.event_stream import EventStreamService, get_event_stream_service
 from app.services.run_executor import RunExecutor, get_run_executor
@@ -133,6 +134,20 @@ async def list_messages(
     """按稳定序号查询持久化聊天历史。"""
     messages = await service.list_messages(session_id)
     return MessageListResponse(items=[MessageResponse.model_validate(item) for item in messages])
+
+
+@router.post(
+    "/{session_id}/vnc-access",
+    response_model=VncAccessResponse,
+    responses=ERROR_RESPONSES,
+)
+async def issue_vnc_access(
+    session_id: uuid.UUID,
+    service: Annotated[SessionService, Depends(get_session_service)],
+) -> VncAccessResponse:
+    """签发仅对当前会话桌面有效的短期 noVNC 地址。"""
+    access = await service.issue_vnc_access(session_id)
+    return VncAccessResponse(url=access.url, expires_at=access.expires_at)
 
 
 @router.get(

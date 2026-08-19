@@ -142,3 +142,18 @@ async def test_request_validation_rejects_blank_content(api_client: AsyncClient)
 
     assert blank_title.status_code == 422
     assert blank_input.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_vnc_access_is_issued_only_for_active_session(api_client: AsyncClient) -> None:
+    created = await create_session(api_client, "桌面访问测试")
+    session_id = created["id"]
+
+    access = await api_client.post(f"/api/v1/sessions/{session_id}/vnc-access")
+    assert access.status_code == 200
+    assert access.json()["url"].endswith(f"/fake-vnc/fake-{session_id}")
+
+    await api_client.post(f"/api/v1/sessions/{session_id}/stop")
+    stopped_access = await api_client.post(f"/api/v1/sessions/{session_id}/vnc-access")
+    assert stopped_access.status_code == 409
+    assert stopped_access.json()["error"]["code"] == "state_conflict"

@@ -6,6 +6,7 @@
 | --- | --- | --- | --- |
 | 第二阶段：会话和历史 API | [查看归档](./phase-2-session-api/README.md) | 2026-08-18 08:38–08:45 | 通过 |
 | 第三阶段：Agent 适配与 SSE | [查看归档](./phase-3-agent-sse/README.md) | 2026-08-18 09:04–09:34 | 通过；真实 Anthropic API 冒烟待有效 Key |
+| 第四阶段：隔离运行时与 noVNC | [查看归档](./phase-4-isolated-runtime/README.md) | 2026-08-18 10:20–10:39 | 通过；用户已确认 |
 
 ## 使用方法
 

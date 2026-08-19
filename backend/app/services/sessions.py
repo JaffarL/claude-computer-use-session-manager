@@ -10,7 +10,7 @@ from app.db.models import AgentRun, AgentSession, ChatMessage
 from app.db.session import get_db_session
 from app.domain import MessageRole, RunStatus, SessionStatus
 from app.repositories import SessionRepository
-from app.runtime import RuntimeProvider, get_runtime_provider
+from app.runtime import RuntimeProvider, VncAccess, get_runtime_provider
 from app.services.errors import (
     ResourceNotFoundError,
     RuntimeOperationError,
@@ -46,7 +46,7 @@ class SessionService:
         await self._database_session.commit()
 
         try:
-            handle = await self._runtime_provider.create(session.id)
+            handle = await self._runtime_provider.create(session.id, session.expires_at)
         except Exception as exc:
             session.status = SessionStatus.FAILED.value
             session.version += 1
@@ -131,6 +131,17 @@ class SessionService:
     async def list_messages(self, session_id: uuid.UUID) -> list[ChatMessage]:
         await self.get_session(session_id)
         return await self._repository.list_messages(session_id)
+
+    async def issue_vnc_access(self, session_id: uuid.UUID) -> VncAccess:
+        session = await self.get_session(session_id)
+        if session.status not in {SessionStatus.READY.value, SessionStatus.RUNNING.value}:
+            raise StateConflictError(f"会话当前状态为 {session.status}，桌面不可访问。")
+        if not session.runtime_id:
+            raise RuntimeOperationError("会话尚未绑定桌面运行时。")
+        try:
+            return await self._runtime_provider.issue_vnc_access(session.runtime_id)
+        except Exception as exc:
+            raise RuntimeOperationError("生成桌面访问地址失败。") from exc
 
     async def stop_session(self, session_id: uuid.UUID) -> AgentSession:
         session = await self.get_session(session_id)

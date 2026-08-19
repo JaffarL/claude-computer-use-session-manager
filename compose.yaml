@@ -26,6 +26,14 @@ services:
     volumes:
       - redis-data:/data
 
+  sandbox-image:
+    image: computer-use-sandbox:local
+    build:
+      context: .
+      dockerfile: docker/sandbox.Dockerfile
+    entrypoint: ["/bin/true"]
+    restart: "no"
+
   api:
     build:
       context: .
@@ -37,6 +45,18 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      RUNTIME_PROVIDER: docker
+      SANDBOX_IMAGE: computer-use-sandbox:local
+      SANDBOX_PUBLIC_HOST: ${SANDBOX_PUBLIC_HOST:-localhost}
+      SANDBOX_MEMORY_LIMIT: ${SANDBOX_MEMORY_LIMIT:-768m}
+      SANDBOX_NANO_CPUS: ${SANDBOX_NANO_CPUS:-1000000000}
+      SANDBOX_PIDS_LIMIT: ${SANDBOX_PIDS_LIMIT:-256}
+      SANDBOX_SHM_SIZE: ${SANDBOX_SHM_SIZE:-256m}
+      VNC_ACCESS_TTL_SECONDS: ${VNC_ACCESS_TTL_SECONDS:-120}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "0"
     ports:
       - "8000:8000"
     depends_on:
@@ -44,6 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      sandbox-image:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [

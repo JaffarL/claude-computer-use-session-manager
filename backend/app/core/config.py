@@ -28,6 +28,17 @@ class Settings(BaseSettings):
     sse_queue_size: int = 100
     fake_agent_step_delay_seconds: float = 0.08
 
+    runtime_provider: Literal["fake", "docker"] = "fake"
+    sandbox_image: str = "computer-use-sandbox:local"
+    sandbox_public_host: str = "localhost"
+    sandbox_memory_limit: str = "768m"
+    sandbox_nano_cpus: int = 1_000_000_000
+    sandbox_pids_limit: int = 256
+    sandbox_shm_size: str = "256m"
+    sandbox_startup_timeout_seconds: float = 60.0
+    runtime_reconcile_interval_seconds: float = 30.0
+    vnc_access_ttl_seconds: int = 120
+
     anthropic_api_key: SecretStr | None = None
     anthropic_base_url: str | None = None
     anthropic_model: str | None = None

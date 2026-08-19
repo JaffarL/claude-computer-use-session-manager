@@ -21,7 +21,7 @@ foreach ($RelativePath in $TrackedFiles) {
     $FullPath = Join-Path $ProjectRoot $RelativePath
     if (-not (Test-Path -LiteralPath $FullPath -PathType Leaf)) { continue }
 
-    $FileInfo = Get-Item -LiteralPath $FullPath
+    $FileInfo = Get-Item -LiteralPath $FullPath -Force
     if ($FileInfo.Length -gt 5MB) {
         $Findings.Add("超大文件：$RelativePath ($([math]::Round($FileInfo.Length / 1MB, 2)) MiB)")
     }

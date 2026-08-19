@@ -104,7 +104,7 @@ py -3.11 -m venv .venv
 .\scripts\security-check.ps1
 ```
 
-当前基线：23 个 pytest 测试，同时检查 Ruff、依赖一致性、JavaScript 语法、开发/生产 Compose 和常见密钥泄露。
+当前基线：28 个 pytest 测试，同时检查 Ruff、依赖一致性、JavaScript 语法、开发/生产 Compose 和常见密钥泄露。
 
 ## 停止与清理
 
@@ -204,7 +204,7 @@ compose.production.yaml  生产约束 override
 
 ## 已知边界
 
-- 默认执行路径仍是确定性 Fake Agent；真实 Anthropic 工具桥已完成自动化与无费用 sandbox 实测，计费端到端验收需显式切换后执行；
+- 默认执行路径仍是确定性 Fake Agent；真实 Anthropic 工具桥和真实计费端到端测试均已通过，运行时需显式切换并承担模型调用费用；
 - API 没有用户登录、session 所有权、审计和速率限制；
 - 本地 API 挂载 Docker socket，控制面应被视为可信高权限组件；
 - loopback 随机 noVNC 端口只适合本机演示，远程部署必须使用同源 HTTPS/WSS 代理；

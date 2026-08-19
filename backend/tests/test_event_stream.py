@@ -195,7 +195,13 @@ async def test_anthropic_callbacks_are_ui_independent_and_ordered() -> None:
 
 
 class FailingAgentRunner:
-    async def run(self, _: str, __: AgentEventSink) -> str:
+    async def run(
+        self,
+        _: str,
+        __: AgentEventSink,
+        *,
+        runtime_id: str | None = None,
+    ) -> str:
         raise RuntimeError("模拟 Agent 故障")
 
 

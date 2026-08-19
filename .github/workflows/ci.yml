@@ -36,8 +36,26 @@ jobs:
       - name: 静态检查
         run: ruff check app tests migrations
 
+      - name: 检查依赖一致性
+        run: python -m pip check
+
       - name: 验证数据库迁移脚本
         run: alembic upgrade head --sql > /dev/null
 
       - name: 运行测试
         run: pytest -q
+
+      - name: 检查前端 JavaScript 语法
+        working-directory: .
+        run: node --check backend/app/static/app.js
+
+      - name: 验证开发与生产 Compose
+        working-directory: .
+        run: |
+          docker compose config --quiet
+          docker compose -f compose.yaml -f compose.production.yaml config --quiet
+
+      - name: 扫描密钥与超大文件
+        working-directory: .
+        shell: pwsh
+        run: ./scripts/security-check.ps1

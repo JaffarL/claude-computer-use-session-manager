@@ -19,6 +19,7 @@ MANAGED_LABEL = "com.jaffar.computer-use.managed"
 SESSION_LABEL = "com.jaffar.computer-use.session-id"
 EXPIRES_LABEL = "com.jaffar.computer-use.expires-at"
 COMPONENT_LABEL = "com.jaffar.computer-use.component"
+NAMESPACE_LABEL = "com.jaffar.computer-use.namespace"
 VNC_PORT = "6080/tcp"
 
 
@@ -28,6 +29,7 @@ class DockerRuntimeProvider:
     def __init__(
         self,
         *,
+        namespace: str,
         image: str,
         public_host: str,
         memory_limit: str,
@@ -39,6 +41,7 @@ class DockerRuntimeProvider:
         client: Any | None = None,
     ) -> None:
         self._client = client or docker.from_env()
+        self._namespace = namespace
         self._image = image
         self._public_host = public_host
         self._memory_limit = memory_limit
@@ -80,6 +83,7 @@ class DockerRuntimeProvider:
                         SESSION_LABEL: str(session_id),
                         EXPIRES_LABEL: expires_at.isoformat(),
                         COMPONENT_LABEL: "sandbox",
+                        NAMESPACE_LABEL: self._namespace,
                     },
                     ports={VNC_PORT: ("127.0.0.1", 0)},
                     init=True,
@@ -129,7 +133,12 @@ class DockerRuntimeProvider:
         containers = await asyncio.to_thread(
             self._client.containers.list,
             all=True,
-            filters={"label": f"{MANAGED_LABEL}=true"},
+            filters={
+                "label": [
+                    f"{MANAGED_LABEL}=true",
+                    f"{NAMESPACE_LABEL}={self._namespace}",
+                ]
+            },
         )
         result: list[RuntimeInfo] = []
         for container in containers:
@@ -190,6 +199,7 @@ class DockerRuntimeProvider:
             filters={
                 "label": [
                     f"{MANAGED_LABEL}=true",
+                    f"{NAMESPACE_LABEL}={self._namespace}",
                     f"{SESSION_LABEL}={session_id}",
                 ]
             },

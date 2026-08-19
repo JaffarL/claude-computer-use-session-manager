@@ -11,7 +11,8 @@ flowchart LR
     C["浏览器或 API 客户端"] --> A["FastAPI 控制面"]
     A --> P[("PostgreSQL：持久状态")]
     A --> R[("Redis：实时事件与协调")]
-    A --> E["Agent 执行器"]
+    A --> E["Fake / Anthropic Agent 执行器"]
+    E --> M["Anthropic/兼容 API"]
     E --> P
     E --> R
     A --> D["Docker RuntimeProvider"]
@@ -32,7 +33,7 @@ flowchart LR
 ```text
 backend/
 ├─ app/
-│  ├─ agents/       # Agent 接口、fake runner、Anthropic 回调适配
+│  ├─ agents/       # Fake/Anthropic runner、远程 sandbox 工具与事件适配
 │  ├─ api/          # REST 与 SSE 路由
 │  ├─ core/         # 配置和日志
 │  ├─ db/           # 数据库模型和连接
@@ -71,7 +72,7 @@ sandbox/
 
 每个 sandbox 使用独立的 Xvfb display、浏览器 profile、文件系统、x11vnc 和 noVNC 进程。控制面只把 `6080/tcp` 映射到主机 `127.0.0.1` 的随机端口，不公开原始 `5900/tcp`。容器默认限制为 1 核 CPU、768 MiB 内存、256 个进程和 256 MiB 共享内存，并启用 `cap_drop=ALL` 与 `no-new-privileges`。
 
-容器标签保存 session ID、过期时间和组件类型。控制面启动及之后每 30 秒执行对账：恢复数据库与容器的绑定、清理过期/孤儿/重复容器，并把异常退出的活跃会话标记为失败。API 停在 `STOPPING` 中间时，重启对账会在确认容器已退出后收敛为 `STOPPED`。
+容器标签保存 runtime namespace、session ID、过期时间和组件类型。同一 Docker Engine 上的不同控制面使用不同 `RUNTIME_NAMESPACE`，reconciler 只查看自己的容器，避免交叉清理。控制面启动及之后每 30 秒执行对账：恢复数据库与容器的绑定、清理过期/孤儿/重复容器，并把异常退出的活跃会话标记为失败。API 停在 `STOPPING` 中间时，重启对账会在确认容器已退出后收敛为 `STOPPED`。
 
 ## noVNC 授权
 
@@ -109,7 +110,7 @@ sequenceDiagram
 - PostgreSQL 是事实来源，Redis 只负责跨进程低延迟扇出；
 - `GET /api/v1/sessions/{session_id}/events/history` 提供等价的非流式历史查询。
 
-当前确定性 fake agent 会生成 `run.started`、文本增量、工具开始、工具结果、截图、最终消息和 `run.completed`。上游 Anthropic 的同步 callback 由有界适配队列转换为同一套 UI 无关事件，避免 Agent 代码依赖 Streamlit。
+确定性 Fake Agent 会生成 `run.started`、文本增量、工具开始、工具结果、截图、最终消息和 `run.completed`。真实模式使用 Anthropic Computer Use 客户端工具循环；每个 run 从数据库取得自己的 `runtime_id`，模型请求留在 API 进程，`computer` 与 `bash` 工具经 Docker exec 只进入该 runtime。回调由有界队列转换为相同的 UI 无关持久事件，避免 Agent 代码依赖 Streamlit。
 
 ## 同源演示前端
 

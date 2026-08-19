@@ -1,0 +1,36 @@
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging: *default-logging
+
+  redis:
+    restart: unless-stopped
+    stop_grace_period: 20s
+    logging: *default-logging
+
+  sandbox-image:
+    logging: *default-logging
+
+  api:
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    ports: !override
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging

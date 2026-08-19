@@ -1,6 +1,6 @@
 # 上游代码溯源
 
-本项目复用了 Anthropic 官方 Computer Use 演示项目的 agent loop、工具实现和容器化 Linux 桌面环境，并将在后续里程碑中用 FastAPI 控制面替换实验性的 Streamlit 交互层。
+本项目以 Anthropic 官方 Computer Use 演示项目为基线，用 FastAPI 控制面替换实验性的 Streamlit 交互层，并把原先单容器内执行的模型工具循环改造成面向每个 session sandbox 的远程工具桥。
 
 ## 导入信息
 

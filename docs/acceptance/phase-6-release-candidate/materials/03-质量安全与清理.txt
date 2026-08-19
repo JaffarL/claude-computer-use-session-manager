@@ -1,0 +1,36 @@
+第六阶段：质量、安全、优雅关闭与清理
+时间：2026-08-18 11:46–11:48 Asia/Shanghai
+
+PowerShell parser：
+cleanup.ps1 PASS
+dev.ps1 PASS
+security-check.ps1 PASS
+smoke.ps1 PASS
+test.ps1 PASS
+
+质量：
+57 files already formatted
+Ruff All checks passed
+pytest 23 passed in 2.56s
+pip check: No broken requirements found
+node --check: PASS
+development/production Compose config: PASS
+Markdown local links: 16 files PASS
+git diff --check: PASS
+
+安全：
+当前受跟踪文件与 Git 全历史未发现常见 Anthropic/GitHub/AWS Key、私钥、受跟踪 .env 或超过 5 MiB 的对象。
+
+优雅关闭：
+API_GRACEFUL_STOP_SECONDS=1.423
+API_RESTART_READY=PASS
+
+临时清理：
+删除 ccu-release-clean 容器、网络、postgres-data、redis-data 和 API 镜像。
+TEMP_VOLUMES_AFTER=0
+TEMP_CONTAINERS_AFTER=0
+CURRENT_READY=200
+
+磁盘：
+Build Cache=3.012 GB，其中约 2.966 GB 可回收。
+未执行全局 builder prune，避免删除其他项目可复用缓存。

@@ -15,6 +15,7 @@ from app.domain import SessionStatus
 from app.runtime import FakeRuntimeProvider
 from app.runtime.docker_runtime import (
     EXPIRES_LABEL,
+    NAMESPACE_LABEL,
     SESSION_LABEL,
     DockerRuntimeProvider,
 )
@@ -117,6 +118,7 @@ class FakeDockerClient:
 
 def make_docker_provider(client: FakeDockerClient) -> DockerRuntimeProvider:
     return DockerRuntimeProvider(
+        namespace="runtime-test",
         image="computer-use-sandbox:test",
         public_host="127.0.0.1",
         memory_limit="768m",
@@ -149,6 +151,7 @@ async def test_concurrent_create_is_idempotent_and_applies_limits() -> None:
     assert options["cap_drop"] == ["ALL"]
     assert options["security_opt"] == ["no-new-privileges:true"]
     assert options["labels"][SESSION_LABEL] == str(session_id)
+    assert options["labels"][NAMESPACE_LABEL] == "runtime-test"
     assert options["labels"][EXPIRES_LABEL] == expires_at.isoformat()
 
 
@@ -189,6 +192,31 @@ async def test_vnc_jwt_is_short_lived_and_bound_to_one_container() -> None:
     assert access.url.startswith("http://127.0.0.1:49001/vnc.html?")
     with pytest.raises(jwt.InvalidSignatureError):
         jwt.decode(token, other_signing_key, algorithms=["HS256"])
+
+
+@pytest.mark.asyncio
+async def test_runtime_namespace_hides_other_control_plane_containers() -> None:
+    client = FakeDockerClient()
+    provider_a = make_docker_provider(client)
+    provider_b = DockerRuntimeProvider(
+        namespace="other-control-plane",
+        image="computer-use-sandbox:test",
+        public_host="127.0.0.1",
+        memory_limit="768m",
+        nano_cpus=1_000_000_000,
+        pids_limit=256,
+        shm_size="256m",
+        startup_timeout_seconds=1,
+        vnc_access_ttl_seconds=120,
+        client=client,
+    )
+    expires_at = datetime.now(UTC) + timedelta(hours=1)
+
+    handle_a = await provider_a.create(uuid.uuid4(), expires_at)
+    handle_b = await provider_b.create(uuid.uuid4(), expires_at)
+
+    assert [item.runtime_id for item in await provider_a.list_managed()] == [handle_a.runtime_id]
+    assert [item.runtime_id for item in await provider_b.list_managed()] == [handle_b.runtime_id]
 
 
 @pytest.mark.asyncio

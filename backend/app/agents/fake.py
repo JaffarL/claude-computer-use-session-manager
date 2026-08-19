@@ -10,7 +10,13 @@ class FakeAgentRunner:
     def __init__(self, step_delay_seconds: float = 0.08) -> None:
         self._step_delay_seconds = step_delay_seconds
 
-    async def run(self, user_input: str, event_sink: AgentEventSink) -> str:
+    async def run(
+        self,
+        user_input: str,
+        event_sink: AgentEventSink,
+        *,
+        runtime_id: str | None = None,
+    ) -> str:
         pieces = ["正在分析任务。", "准备调用浏览器工具。"]
         for index, text in enumerate(pieces, start=1):
             await event_sink.emit(

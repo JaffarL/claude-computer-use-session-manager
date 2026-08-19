@@ -1,3 +1,3 @@
-from app.domain.session import MessageRole, RunStatus, SessionStatus
+from app.domain.session import EventType, MessageRole, RunStatus, SessionStatus
 
-__all__ = ["MessageRole", "RunStatus", "SessionStatus"]
+__all__ = ["EventType", "MessageRole", "RunStatus", "SessionStatus"]

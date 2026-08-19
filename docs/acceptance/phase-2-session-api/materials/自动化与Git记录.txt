@@ -1,0 +1,23 @@
+第二阶段：会话和历史 API
+验收时间：2026-08-18
+
+自动化检查结论：
+- 后端完整测试：10 passed
+- 使用临时 SQLite 文件而非纯内存假仓储
+- SQLite 外键约束已开启
+- FakeRuntimeProvider 不调用真实桌面或 Anthropic API
+- 覆盖创建、查询、列表、404、幂等、409、停止、删除、输入校验
+
+真实环境检查：
+- FastAPI：healthy
+- PostgreSQL：healthy
+- Redis：healthy
+- API 容器重启后消息历史仍存在
+
+Git 提交：
+7088d58 feat(db): persist runs and chat messages
+ba58f3e feat(api): add session lifecycle and history endpoints
+ae67a61 test(api): cover persistence conflicts and idempotency
+c20776f fix(db): flush run before dependent message
+
+远程分支：origin/feat/session-api-persistence

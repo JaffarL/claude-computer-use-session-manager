@@ -1,0 +1,49 @@
+第三阶段真实 SSE 事件流
+验收时间：2026-08-18 09:04（Asia/Shanghai）
+session_id：32a7c61f-f812-4c1c-aea1-01b4d11ac2d6
+run_id：68987f21-3652-472d-a5f5-5bf876232cf3
+
+连接建立：
+
+retry: 2000
+
+空闲心跳：
+
+event: heartbeat
+data: {"timestamp":"2026-08-18T01:04:54.832334+00:00"}
+
+任务提交后实时收到：
+
+id: 1
+event: run.started
+data: {"id":1,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"run.started","payload":{"input":"请模拟打开浏览器并检查页面状态"},"created_at":"2026-08-18T01:04:59.016780Z"}
+
+id: 2
+event: assistant.delta
+data: {"id":2,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"assistant.delta","payload":{"index":1,"text":"正在分析任务。"},"created_at":"2026-08-18T01:04:59.028065Z"}
+
+id: 3
+event: assistant.delta
+data: {"id":3,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"assistant.delta","payload":{"index":2,"text":"准备调用浏览器工具。"},"created_at":"2026-08-18T01:04:59.035880Z"}
+
+id: 4
+event: tool.started
+data: {"id":4,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"tool.started","payload":{"tool_use_id":"fake-browser-001","name":"computer","input":{"action":"screenshot"}},"created_at":"2026-08-18T01:04:59.123902Z"}
+
+id: 5
+event: tool.result
+data: {"id":5,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"tool.result","payload":{"tool_use_id":"fake-browser-001","is_error":false,"output":"fake screenshot captured"},"created_at":"2026-08-18T01:04:59.211531Z"}
+
+id: 6
+event: screenshot.available
+data: {"id":6,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"screenshot.available","payload":{"tool_use_id":"fake-browser-001","source":"fake"},"created_at":"2026-08-18T01:04:59.299037Z"}
+
+id: 7
+event: assistant.message
+data: {"id":7,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"assistant.message","payload":{"message_id":"2807024f-a4ed-4f8d-8042-cb4a8b4bad52","text":"模拟任务已完成：请模拟打开浏览器并检查页面状态"},"created_at":"2026-08-18T01:04:59.304841Z"}
+
+id: 8
+event: run.completed
+data: {"id":8,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"run.completed","payload":{"status":"COMPLETED"},"created_at":"2026-08-18T01:04:59.314048Z"}
+
+说明：curl 在 25 秒上限后以 code 28 退出属于验收命令主动超时，不是 SSE 服务异常；此前已完整收到目标事件。

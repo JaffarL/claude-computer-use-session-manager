@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -36,3 +38,9 @@ async def close_database() -> None:
         await _engine.dispose()
     _engine = None
     _session_factory = None
+
+
+async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """为每个请求提供独立的数据库事务会话。"""
+    async with get_session_factory()() as database_session:
+        yield database_session

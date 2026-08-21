@@ -4,8 +4,6 @@
 
 当前发布候选版本提供原生 HTML/CSS/JS 控制台，可在一个页面内完成“创建会话 → 提交任务 → 查看 SSE 进度 → 查看隔离桌面 → 刷新恢复历史 → 停止会话”。
 
-![前端主流程](docs/acceptance/phase-5-demo-frontend/materials/screenshots/01-live-task-sse-vnc.png)
-
 ## 核心能力
 
 - 会话、任务、消息和事件的 REST API；
@@ -33,7 +31,7 @@ flowchart LR
     B -->|"短期 JWT + noVNC WebSocket"| S2
 ```
 
-详细设计见 [架构说明](docs/architecture.md)，并发实测见 [并发证据](docs/concurrency-evidence.md)。
+核心数据流和主要组件如上图所示；并发控制由数据库事务、行锁、唯一约束和幂等键共同保证。
 
 ## 快速启动（Windows 11 + PowerShell）
 
@@ -143,7 +141,7 @@ py -3.11 -m venv .venv
 | `ANTHROPIC_MAX_TOKENS` | `4096` | 每轮模型响应的 token 上限 |
 | `ANTHROPIC_MAX_ITERATIONS` | `30` | 单任务最大模型/工具循环轮数 |
 
-默认继续使用 Fake Agent，确保自动化测试和演示不会产生费用。设置 `AGENT_PROVIDER=anthropic` 并配置凭据、Base URL 和模型后，真实执行器会调用 Anthropic Computer Use API；`computer` 与 `bash` 工具通过 Docker Engine 只在当前 session 绑定的 sandbox 内执行。首次真实测试见 [Anthropic 手工验证](docs/anthropic-manual-test.md)。
+默认继续使用 Fake Agent，确保自动化测试和演示不会产生费用。设置 `AGENT_PROVIDER=anthropic` 并配置凭据、Base URL 和模型后，真实执行器会调用 Anthropic Computer Use API；`computer` 与 `bash` 工具通过 Docker Engine 只在当前 session 绑定的 sandbox 内执行。
 
 ## API
 
@@ -161,8 +159,6 @@ py -3.11 -m venv .venv
 | `POST` | `/api/v1/sessions/{id}/stop` | 幂等停止会话 |
 | `DELETE` | `/api/v1/sessions/{id}` | 销毁 runtime 并软删除会话 |
 
-可复制的请求见 [PowerShell API 示例](docs/api-examples.md)。
-
 ## 生产 Compose 模板
 
 ```powershell
@@ -170,7 +166,7 @@ docker compose -f compose.yaml -f compose.production.yaml config
 docker compose -f compose.yaml -f compose.production.yaml up -d --build
 ```
 
-生产 override 增加本机回环端口、只读 API 文件系统、临时目录、capability 限制、日志轮转、自动重启和优雅停止时间。它是远程部署的基础模板，不代表已经具备不可信多租户生产安全性。远程入口、TLS/WSS 和密钥托管要求见 [部署说明](docs/deployment.md) 与 [安全说明](docs/security.md)。
+生产 override 增加本机回环端口、只读 API 文件系统、临时目录、capability 限制、日志轮转、自动重启和优雅停止时间。它是远程部署的基础模板，不代表已经具备不可信多租户生产安全性。远程部署还需要配置入口代理、TLS/WSS 和密钥托管。
 
 ## 目录
 
@@ -179,8 +175,6 @@ backend/                 FastAPI、数据库、事件、runtime 和测试
 docker/                  API 与 sandbox 镜像
 sandbox/                 桌面进程监管和 healthcheck
 scripts/                 PowerShell 开发、测试、冒烟、安全和清理脚本
-docs/                    架构、安全、部署、API、故障排查和演示文档
-docs/acceptance/         每个阶段的命令输出、截图和结论
 compose.yaml             本地开发栈
 compose.production.yaml  生产约束 override
 ```
@@ -193,15 +187,6 @@ compose.production.yaml  生产约束 override
 - noVNC JWT 绑定单个容器的 HMAC 密钥和 VNC 目标，A 会话令牌不能访问 B；
 - API lifespan 在停止时结束 reconciler，并关闭 Docker、Redis 和数据库连接。
 
-## 验证记录
-
-- [第二阶段：会话与历史 API](docs/acceptance/phase-2-session-api/README.md)
-- [第三阶段：Agent 事件与 SSE](docs/acceptance/phase-3-agent-sse/README.md)
-- [第四阶段：隔离 runtime 与 noVNC](docs/acceptance/phase-4-isolated-runtime/README.md)
-- [第五阶段：演示前端](docs/acceptance/phase-5-demo-frontend/README.md)
-- [第六阶段：发布候选质量与文档](docs/acceptance/phase-6-release-candidate/README.md)
-- [第七阶段：真实 Anthropic 工具桥](docs/acceptance/phase-7-anthropic-bridge/README.md)
-
 ## 已知边界
 
 - 默认执行路径仍是确定性 Fake Agent；真实 Anthropic 工具桥和真实计费端到端测试均已通过，运行时需显式切换并承担模型调用费用；
@@ -210,8 +195,6 @@ compose.production.yaml  生产约束 override
 - loopback 随机 noVNC 端口只适合本机演示，远程部署必须使用同源 HTTPS/WSS 代理；
 - Docker 容器不是强安全虚拟机，不应在桌面中使用个人账号或生产凭据。
 
-故障处理见 [故障排查](docs/troubleshooting.md)。
-
 ## 上游与许可
 
-Computer Use 基线来自 Anthropic `claude-quickstarts/computer-use-demo` 固定提交，详情见 [上游溯源](docs/upstream.md)。原始 MIT License 保留在仓库根目录。
+Computer Use 基线来自 Anthropic `claude-quickstarts/computer-use-demo` 固定提交。原始 MIT License 保留在仓库根目录。

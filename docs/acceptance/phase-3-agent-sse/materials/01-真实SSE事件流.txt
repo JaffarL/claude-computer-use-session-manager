@@ -1,5 +1,5 @@
 第三阶段真实 SSE 事件流
-验收时间：2026-08-18 09:04（Asia/Shanghai）
+验证时间：2026-08-18 09:04（Asia/Shanghai）
 session_id：32a7c61f-f812-4c1c-aea1-01b4d11ac2d6
 run_id：68987f21-3652-472d-a5f5-5bf876232cf3
 
@@ -46,4 +46,4 @@ id: 8
 event: run.completed
 data: {"id":8,"session_id":"32a7c61f-f812-4c1c-aea1-01b4d11ac2d6","run_id":"68987f21-3652-472d-a5f5-5bf876232cf3","event_type":"run.completed","payload":{"status":"COMPLETED"},"created_at":"2026-08-18T01:04:59.314048Z"}
 
-说明：curl 在 25 秒上限后以 code 28 退出属于验收命令主动超时，不是 SSE 服务异常；此前已完整收到目标事件。
+说明：curl 在 25 秒上限后以 code 28 退出，原因是验证命令设置了主动超时；此前已完整收到目标事件。

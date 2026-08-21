@@ -143,7 +143,7 @@ py -3.11 -m venv .venv
 | `ANTHROPIC_MAX_TOKENS` | `4096` | 每轮模型响应的 token 上限 |
 | `ANTHROPIC_MAX_ITERATIONS` | `30` | 单任务最大模型/工具循环轮数 |
 
-默认继续使用 Fake Agent，确保自动化测试和演示不会产生费用。设置 `AGENT_PROVIDER=anthropic` 并配置凭据、Base URL 和模型后，真实执行器会调用 Anthropic Computer Use API；`computer` 与 `bash` 工具通过 Docker Engine 只在当前 session 绑定的 sandbox 内执行。首次真实测试见 [Anthropic 手工验收](docs/anthropic-manual-test.md)。
+默认继续使用 Fake Agent，确保自动化测试和演示不会产生费用。设置 `AGENT_PROVIDER=anthropic` 并配置凭据、Base URL 和模型后，真实执行器会调用 Anthropic Computer Use API；`computer` 与 `bash` 工具通过 Docker Engine 只在当前 session 绑定的 sandbox 内执行。首次真实测试见 [Anthropic 手工验证](docs/anthropic-manual-test.md)。
 
 ## API
 
@@ -193,7 +193,7 @@ compose.production.yaml  生产约束 override
 - noVNC JWT 绑定单个容器的 HMAC 密钥和 VNC 目标，A 会话令牌不能访问 B；
 - API lifespan 在停止时结束 reconciler，并关闭 Docker、Redis 和数据库连接。
 
-## 验收证据
+## 验证记录
 
 - [第二阶段：会话与历史 API](docs/acceptance/phase-2-session-api/README.md)
 - [第三阶段：Agent 事件与 SSE](docs/acceptance/phase-3-agent-sse/README.md)
@@ -210,7 +210,7 @@ compose.production.yaml  生产约束 override
 - loopback 随机 noVNC 端口只适合本机演示，远程部署必须使用同源 HTTPS/WSS 代理；
 - Docker 容器不是强安全虚拟机，不应在桌面中使用个人账号或生产凭据。
 
-故障处理见 [故障排查](docs/troubleshooting.md)，五分钟录屏流程见 [演示脚本](docs/demo-script.md)。
+故障处理见 [故障排查](docs/troubleshooting.md)。
 
 ## 上游与许可
 

@@ -1,6 +1,6 @@
 # 并发与隔离证据
 
-本页汇总第四阶段的真实 Docker 验收数据；完整命令、截图和自动化输出见 [第四阶段归档](acceptance/phase-4-isolated-runtime/README.md)。
+本页汇总第四阶段的真实 Docker 验证数据；完整命令、截图和自动化输出见 [第四阶段记录](acceptance/phase-4-isolated-runtime/README.md)。
 
 ## 跨会话并行
 
@@ -43,7 +43,7 @@ unique_runtime_ids=1
 
 ## 桌面与令牌隔离
 
-真实验收创建 A、B 两个 sandbox：
+验证过程创建 A、B 两个 sandbox：
 
 ```text
 A runtime=6e8b74c0a4c0... host_port=32769

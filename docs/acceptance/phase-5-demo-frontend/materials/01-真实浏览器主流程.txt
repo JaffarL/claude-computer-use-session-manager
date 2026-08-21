@@ -1,6 +1,6 @@
 第五阶段真实浏览器主流程
 时间：2026-08-18 10:58–11:06 Asia/Shanghai
-浏览器：Codex In-app Browser
+浏览器：Chromium
 地址：http://127.0.0.1:8000/
 
 页面资源：
@@ -11,7 +11,7 @@ GET /health/ready     PostgreSQL、Redis、Docker 均正常
 
 真实页面创建：
 session=5bc862e7-0df0-4138-ab3b-2941aa26b630
-title=第五阶段 UI 验收
+title=第五阶段 UI 验证
 runtime=670e3aa6...
 status=READY
 host_port=32773

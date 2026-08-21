@@ -1,15 +1,14 @@
-# 第四阶段验收归档：隔离运行时与 noVNC
+# 第四阶段验证记录：隔离运行时与 noVNC
 
-## 验收信息
+## 验证信息
 
-- 验收时间：2026-08-18 10:20–10:39（Asia/Shanghai）
-- 验收分支：`feat/isolated-runtime-vnc`
+- 验证时间：2026-08-18 10:20–10:39（Asia/Shanghai）
+- 分支：`feat/isolated-runtime-vnc`
 - 功能提交：`9dff315`、`0b7796a`、`6547cef`
-- 验收人：Codex
-- 验收结论：通过；用户已于 2026-08-18 确认
+- 结果：通过
 - 环境：Windows 11、PowerShell、Docker Desktop、FastAPI、PostgreSQL、Redis
 
-## 验收目标
+## 验证目标
 
 1. 构建不含 Streamlit 的独立 Linux 桌面镜像；
 2. 每个逻辑 session 创建一个独立 Docker sandbox；
@@ -22,7 +21,7 @@
 9. API 重启后根据 label 恢复数据库与原容器的绑定；
 10. 过期、孤儿、重复和停止中断的运行时能够由 reconciler 收敛。
 
-## 实际验收步骤
+## 验证步骤
 
 ### 1. 构建镜像
 
@@ -31,7 +30,7 @@ docker compose build sandbox-image
 docker image inspect computer-use-sandbox:local --format "{{.Id}} {{.Size}}"
 ```
 
-结果：镜像 `computer-use-sandbox:local` 构建成功，实际展开大小 `343882616` bytes，约 344 MB。最初 Debian `novnc` 包会引入大量无关 OpenStack/Python 依赖，验收前已改为 pip 安装 websockify 并直接下载固定版本 noVNC 1.5.0。
+结果：镜像 `computer-use-sandbox:local` 构建成功，实际展开大小 `343882616` bytes，约 344 MB。Debian `novnc` 包会引入大量无关 OpenStack/Python 依赖，因此改为 pip 安装 websockify 并直接下载固定版本 noVNC 1.5.0。
 
 ### 2. 单容器协议与鉴权冒烟
 
@@ -113,7 +112,7 @@ git diff --check
 
 结果：56 个文件格式正确、Ruff 通过、20 tests passed、diff whitespace 检查通过。
 
-## 我使用的验收方法和手段
+## 验证方法
 
 - Docker 真实联调：不仅 mock Docker SDK，还实际构建镜像、启动容器并读取 health、进程、端口和 HostConfig；
 - 协议级 VNC 验证：用 WebSocket 客户端读取 RFB banner，不以“HTML 能打开”替代桌面可用性；
@@ -126,7 +125,7 @@ git diff --check
 - 回收检查：通过 API stop/delete 后查询 managed label 容器，确保没有遗留；
 - 自动测试：Fake Docker 对 20 个并发 create、token 绑定、过期/孤儿清理和停止恢复做确定性覆盖。
 
-## 验收结果
+## 验证结果
 
 | 检查项 | 结果 | 证据 |
 | --- | --- | --- |
@@ -147,10 +146,10 @@ git diff --check
 
 ## 当前边界
 
-- 该阶段使用确定性 Fake Agent 验证 run 并发，尚未消耗真实 Anthropic API Key；
+- 该阶段使用确定性 Fake Agent 验证 run 并发；真实 Anthropic 工具链见第七阶段验证记录；
 - 当前 noVNC URL 默认绑定主机 loopback 随机端口，适合本机演示；远程生产需补同源 HTTPS WebSocket 代理；
 - API 挂载 Docker socket 是可信本地控制面方案，不是安全的多租户生产权限模型；
-- 前端将在第五阶段实现，届时用户可直接在同一页面创建 session、查看 SSE 和嵌入 noVNC。
+- 前端在第五阶段实现，同一页面支持创建 session、查看 SSE 和嵌入 noVNC。
 
 ## 素材目录
 

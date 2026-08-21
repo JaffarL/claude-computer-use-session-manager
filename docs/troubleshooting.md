@@ -97,7 +97,7 @@ API 启动和周期 reconciler 会恢复 runtime 绑定，并收敛 STOPPING、�
 .\scripts\dev.ps1
 ```
 
-验收材料位于 Git 跟踪的 `docs/acceptance`，不会随 Docker 卷删除。
+验证材料位于 Git 跟踪的 `docs/acceptance`，不会随 Docker 卷删除。
 
 ## PowerShell 中文输出乱码
 

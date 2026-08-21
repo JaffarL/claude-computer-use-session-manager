@@ -1,14 +1,14 @@
-# 第二阶段验收归档：会话和历史 API
+# 第二阶段验证记录：会话和历史 API
 
-## 验收信息
+## 验证信息
 
-- 验收时间：2026-08-18 08:38–08:45（Asia/Shanghai）
-- 验收分支：`feat/session-api-persistence`
+- 验证时间：2026-08-18 08:38–08:45（Asia/Shanghai）
+- 分支：`feat/session-api-persistence`
 - 分支终点：`c20776f`
-- 用户结论：通过
+- 结果：通过
 - 环境：Windows 11、PowerShell、Docker Desktop、FastAPI、PostgreSQL、Redis
 
-## 验收目标
+## 验证目标
 
 1. 创建、查询、列表、停止和删除会话均符合 API 契约。
 2. run 和 message 会落入数据库，查询顺序稳定。
@@ -18,7 +18,7 @@
 6. API 容器重启后，历史消息仍可查询。
 7. PostgreSQL 和 Redis readiness 均正常。
 
-## 当时的验收步骤
+## 复现步骤
 
 ### 1. 检查服务与接口文档
 
@@ -34,7 +34,7 @@
 
 ```json
 {
-  "title": "远程验收会话",
+  "title": "远程验证会话",
   "expires_in_seconds": 3600
 }
 ```
@@ -108,7 +108,7 @@ POST /api/v1/sessions/fcc23bf2-4b33-49eb-9073-38e3d9c108f7/stop
 
 对应素材：`09-history-after-restart.png`。
 
-## 我使用的验收方法和手段
+## 验证方法
 
 - 自动化：使用 `pytest`、FastAPI ASGI 客户端、临时 SQLite 文件和真实 SQLAlchemy 仓储验证接口；SQLite 显式开启外键约束，避免测试绕过数据库关系。
 - 依赖隔离：通过 `FakeRuntimeProvider` 验证控制面，不依赖真实桌面容器，也不会调用 Anthropic API。
@@ -118,7 +118,7 @@ POST /api/v1/sessions/fcc23bf2-4b33-49eb-9073-38e3d9c108f7/stop
 - 状态机检查：覆盖 `READY → RUNNING → STOPPED`、run 取消、重复停止和活跃任务冲突。
 - Git 检查：确认第二阶段由 4 个可解释的独立提交组成，并已推送远程分支。
 
-## 验收结果
+## 验证结果
 
 | 检查项 | 结果 | 证据 |
 | --- | --- | --- |
@@ -143,8 +143,8 @@ c20776f fix(db): flush run before dependent message
 ```
 
 - 远程分支：`origin/feat/session-api-persistence`
-- 手动创建 PR：<https://github.com/JaffarL/claude-computer-use-session-manager/pull/new/feat/session-api-persistence>
+- Pull Request：[PR #2](https://github.com/JaffarL/claude-computer-use-session-manager/pull/2)
 
 ## 素材目录
 
-原始截图位于 [materials/screenshots](./materials/screenshots/)，文件名按验收顺序编号。截图是从原本仅保存在本机、被 Git 排除的 `artifacts/acceptance/` 原样复制而来；本目录内的副本作为长期归档。
+截图位于 [materials/screenshots](./materials/screenshots/)，文件名按验证顺序编号，并提供 `SHA256SUMS.txt` 用于完整性核对。

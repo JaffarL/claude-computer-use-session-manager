@@ -1,4 +1,4 @@
-# 真实 Anthropic Computer Use 手工验收
+# 真实 Anthropic Computer Use 手工验证
 
 这套步骤会产生模型费用，只在完成自动化测试并确认额度后执行。不要在 sandbox 中登录个人账号，也不要输入邮箱、支付、生产系统或其他敏感凭据。
 
@@ -45,7 +45,7 @@ anthropic claude-sonnet-4-6 True
 ## 4. 浏览器端到端任务
 
 1. 打开 <http://127.0.0.1:8000/>；
-2. 新建会话“真实 Anthropic 验收”；
+2. 新建会话“真实 Anthropic 验证”；
 3. 等待状态变为 `READY`，确认 noVNC 桌面可见；
 4. 提交任务：
 

@@ -1,4 +1,4 @@
-验收时间：2026-08-18（Asia/Shanghai）
+验证时间：2026-08-18（Asia/Shanghai）
 
 镜像：computer-use-sandbox:local
 镜像 ID：sha256:18645ed579f6c9c73dfcaf64f328ad0b9349437af56d17b48822af4999b67c05

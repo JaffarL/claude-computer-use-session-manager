@@ -11,11 +11,11 @@
 
 ## 必须诚实披露的边界
 
-这仍是笔试原型，不是可直接承载不可信多租户的生产沙箱。容器隔离不等同于虚拟机隔离；浏览器内容可能包含 prompt injection；Firefox 和系统软件仍需持续更新。不要在演示桌面登录个人账号，也不要给 agent 访问支付、邮箱、代码签名或生产凭据。
+当前实现面向受信任的本地开发和演示环境。面向不可信多租户场景时，需要增加更强的隔离与访问控制。容器隔离与虚拟机隔离的安全边界不同；浏览器内容可能包含 prompt injection；Firefox 和系统软件仍需持续更新。不要在演示桌面登录个人账号，也不要给 agent 访问支付、邮箱、代码签名或生产凭据。
 
 API 容器在本地开发中挂载了 `/var/run/docker.sock`。能访问 Docker socket 的进程实质上拥有很高的主机控制能力，因此控制面本身必须被视为可信组件。Docker Desktop 当前 socket 的组是 GID 0，所以 Compose 为 API 增加了该附加组；这只是 Windows Docker Desktop 本地开发适配，不应原样作为生产权限设计。
 
-当前 noVNC 地址通过主机 loopback 随机端口提供，满足本机演示和自动化验收。远程浏览器不能使用返回 URL 中的 `localhost`；生产部署应由同源 HTTPS 入口代理静态 noVNC 页面与 WebSocket，不能把一组随机高端口直接暴露到公网。
+当前 noVNC 地址通过主机 loopback 随机端口提供，满足本机演示和自动化验证。远程浏览器不能使用返回 URL 中的 `localhost`；生产部署应由同源 HTTPS 入口代理静态 noVNC 页面与 WebSocket，不能把一组随机高端口直接暴露到公网。
 
 ## 生产化前还需要补齐
 

@@ -1,4 +1,4 @@
-第七阶段：自动化与 Anthropic SDK 验收
+第七阶段：自动化与 Anthropic SDK 验证
 时间：2026-08-18（Asia/Shanghai）
 
 命令：

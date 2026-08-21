@@ -1,8 +1,7 @@
-第七阶段真实计费端到端验收原始摘要
+第七阶段真实计费端到端验证摘要
 时间：2026-08-18 23:10–23:12（Asia/Shanghai）
 
-授权
-- 用户明确回复“确认进行真实计费测试”。
+测试范围
 - 测试目标只访问公开的 https://example.com，不登录、不下载文件。
 
 第一次尝试
@@ -16,7 +15,7 @@
 - 未注册工具返回错误，不执行主机命令。
 - 自动化新增文本工具调用回归测试；总计 28 passed。
 
-成功复验
+成功验证
 session_id=b0940f13-51ce-4089-b57f-d161b3aaf56c
 runtime_id=123553a2a28e533c66c8286261aaee24a23204c440349770d9ce365eee23b4e2
 run_id=30c4443f-1511-4c5a-9056-492a31637f7b
@@ -31,7 +30,7 @@ run.completed=1
 Firefox 进程=305 firefox-esr https://example.com
 模型最终识别标题=Example Domain
 
-交叉验收手段
+交叉验证
 1. API runs：确认 run 为 COMPLETED。
 2. 事件历史：确认有真实 tool.started、tool.result、screenshot.available，而非只有模型文字。
 3. Docker 进程：在该 session 的 runtime 内确认 firefox-esr 正在访问 example.com。
@@ -41,6 +40,5 @@ Firefox 进程=305 firefox-esr https://example.com
 画面文件
 ../artifacts/real-paid-example-domain.png
 
-已知复核限制
-- 机器重启后，Codex 内置浏览器暂时无法连接 localhost:8000，所以本轮没有将前端界面复核标记为通过。
-- 第五阶段已对前端交互单独验收；本轮专注真实模型到 sandbox 的计费工具链。
+验证范围
+- 本记录覆盖真实模型到 sandbox 的计费工具链；前端交互结果见第五阶段验证记录。

@@ -1,5 +1,7 @@
 # Claude Computer Use Session Manager
 
+[English README](README.en.md)
+
 一个面向 Computer Use Agent 的多会话控制面：FastAPI 管理会话和任务，PostgreSQL 保存历史，Redis 推送实时事件，每个会话使用独立 Docker 桌面，并通过短期 JWT 访问 noVNC。
 
 当前发布候选版本提供原生 HTML/CSS/JS 控制台，可在一个页面内完成“创建会话 → 提交任务 → 查看 SSE 进度 → 查看隔离桌面 → 刷新恢复历史 → 停止会话”。
@@ -48,7 +50,7 @@ flowchart LR
 ```powershell
 git clone https://github.com/JaffarL/claude-computer-use-session-manager.git
 Set-Location .\claude-computer-use-session-manager
-git switch docs/release-candidate
+git switch main
 ```
 
 仓库为私有时，先在浏览器登录有权限的 GitHub 账号，或完成 `gh auth login`。
@@ -166,7 +168,7 @@ docker compose -f compose.yaml -f compose.production.yaml config
 docker compose -f compose.yaml -f compose.production.yaml up -d --build
 ```
 
-生产 override 增加本机回环端口、只读 API 文件系统、临时目录、capability 限制、日志轮转、自动重启和优雅停止时间。它是远程部署的基础模板，不代表已经具备不可信多租户生产安全性。远程部署还需要配置入口代理、TLS/WSS 和密钥托管。
+生产 override 增加本机回环端口、只读 API 文件系统、临时目录、capability 限制、日志轮转、自动重启和优雅停止时间，为远程环境提供可复用的 Compose 配置。
 
 ## 目录
 
@@ -187,14 +189,6 @@ compose.production.yaml  生产约束 override
 - noVNC JWT 绑定单个容器的 HMAC 密钥和 VNC 目标，A 会话令牌不能访问 B；
 - API lifespan 在停止时结束 reconciler，并关闭 Docker、Redis 和数据库连接。
 
-## 已知边界
-
-- 默认执行路径仍是确定性 Fake Agent；真实 Anthropic 工具桥和真实计费端到端测试均已通过，运行时需显式切换并承担模型调用费用；
-- API 没有用户登录、session 所有权、审计和速率限制；
-- 本地 API 挂载 Docker socket，控制面应被视为可信高权限组件；
-- loopback 随机 noVNC 端口只适合本机演示，远程部署必须使用同源 HTTPS/WSS 代理；
-- Docker 容器不是强安全虚拟机，不应在桌面中使用个人账号或生产凭据。
-
 ## 上游与许可
 
-Computer Use 基线来自 Anthropic `claude-quickstarts/computer-use-demo` 固定提交。原始 MIT License 保留在仓库根目录。
+`computer_use_demo/` 保留了 Anthropic `anthropic-quickstarts/computer-use-demo` 的基线代码；实际服务入口已经替换为 FastAPI。原始 MIT License 保留在仓库根目录。
